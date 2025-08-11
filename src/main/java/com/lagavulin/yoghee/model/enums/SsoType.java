@@ -1,17 +1,23 @@
 package com.lagavulin.yoghee.model.enums;
 
 public enum SsoType {
-    KAKAO("KAKAO"),
-    APPLE("APPLE"),
-    GOOGLE("GOOGLE");
+    KAKAO("KAKAO", "k"),
+    APPLE("APPLE", "a"),
+    GOOGLE("GOOGLE", "g");
 
     private final String vendor;
+    private final String ssoCode;
 
-    SsoType(String vendor) {
+    SsoType(String vendor, String ssoCode) {
         this.vendor = vendor;
+        this.ssoCode = ssoCode;
     }
 
     public String getVendor() {
         return vendor;
+    }
+
+    public String getSsoCode() {
+        return ssoCode;
     }
 }
