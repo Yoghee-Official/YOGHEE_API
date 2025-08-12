@@ -1,18 +1,15 @@
 package com.lagavulin.yoghee.service.auth.google;
 
-import com.lagavulin.yoghee.service.auth.google.model.GoogleTokenReq;
-import com.lagavulin.yoghee.service.auth.google.model.GoogleTokenRes;
+import com.lagavulin.yoghee.service.auth.AbstractOAuthService;
+import com.lagavulin.yoghee.service.auth.google.model.GoogleToken;
 import com.lagavulin.yoghee.service.auth.google.model.GoogleUserInfo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
-public class GoogleOAuthService {
+public class GoogleOAuthService extends AbstractOAuthService {
 
     @Value("${google.client_id}")
     private String clientId;
@@ -24,19 +21,14 @@ public class GoogleOAuthService {
     private String redirectUri;
 
     private final GoogleAuthClient googleAuthClient;
-    public GoogleUserInfo getUserInfo(String code) {
+    private final GoogleUserClient googleUserClient;
 
-        GoogleTokenReq googleTokenReq = GoogleTokenReq.builder()
-                                                      .code(code)
-                                                      .clientId(clientId)
-                                                      .clientSecret(clientSecret)
-                                                      .redirectUri(redirectUri)
-                                                      .build();
+    protected GoogleToken requestAccessToken(String code) {
+        return googleAuthClient.getAccessToken(code, clientId, clientSecret, redirectUri, "authorization_code");
+    }
 
-        ResponseEntity<GoogleTokenRes> response = googleAuthClient.getAccessToken(googleTokenReq);
-
-        log.info(" [Google Service] Access Token ------> {}", response.getBody());
-
-        return null;
+    @Override
+    protected GoogleUserInfo requestUserInfo(String accessToken) {
+        return googleUserClient.getUserInfo("Bearer " + accessToken);
     }
 }

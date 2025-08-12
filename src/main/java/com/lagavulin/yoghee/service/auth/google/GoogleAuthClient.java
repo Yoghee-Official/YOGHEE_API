@@ -1,14 +1,18 @@
 package com.lagavulin.yoghee.service.auth.google;
 
-import com.lagavulin.yoghee.service.auth.google.model.GoogleTokenReq;
-import com.lagavulin.yoghee.service.auth.google.model.GoogleTokenRes;
+import com.lagavulin.yoghee.service.auth.google.model.GoogleToken;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(value = "googleAuthClient", url="https://oauth2.googleapis.com")
 public interface GoogleAuthClient {
-    @PostMapping("/token")
-    ResponseEntity<GoogleTokenRes> getAccessToken(@RequestBody GoogleTokenReq googleTokenReq);
+    @PostMapping(value = "/token", consumes = "application/x-www-form-urlencoded")
+    GoogleToken getAccessToken(
+            @RequestParam("code") String code,
+            @RequestParam("client_id") String clientId,
+            @RequestParam("client_secret") String clientSecret,
+            @RequestParam("redirect_uri") String redirectUri,
+            @RequestParam("grant_type") String grantType
+        );
 }

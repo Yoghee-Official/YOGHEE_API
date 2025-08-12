@@ -3,13 +3,14 @@ package com.lagavulin.yoghee.service.auth.google.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lagavulin.yoghee.service.auth.SsoToken;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GoogleTokenRes {
+public class GoogleToken extends SsoToken {
     @JsonProperty("access_token")
     private String accessToken;
     @JsonProperty("token_type")
@@ -26,4 +27,14 @@ public class GoogleTokenRes {
     private String error;
     @JsonProperty("error_description")
     private String errorDescription;
+
+    @Override
+    public String getAccessToken(){
+        return accessToken;
+    }
+
+    @Override
+    public String getRefreshToken() {
+        return refreshToken;
+    }
 }
