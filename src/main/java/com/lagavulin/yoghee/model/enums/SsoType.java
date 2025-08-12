@@ -20,4 +20,13 @@ public enum SsoType {
     public String getSsoCode() {
         return ssoCode;
     }
+
+    public static SsoType fromSsoCode(String ssoCode){
+        for (SsoType type : SsoType.values()) {
+            if (type.getSsoCode().equals(ssoCode)) {
+                return type;
+            }
+        }
+        throw new RuntimeException("Invalid SSO code: " + ssoCode); // TODO 예외 처리
+    }
 }

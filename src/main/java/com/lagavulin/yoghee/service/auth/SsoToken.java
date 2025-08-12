@@ -1,4 +1,4 @@
-package com.lagavulin.yoghee.model;
+package com.lagavulin.yoghee.service.auth;
 
 import java.util.Date;
 
