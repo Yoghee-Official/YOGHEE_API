@@ -7,16 +7,19 @@ import com.lagavulin.yoghee.entity.UserSsoToken;
 import com.lagavulin.yoghee.model.enums.SsoType;
 import com.lagavulin.yoghee.repository.AppUserRepository;
 import com.lagavulin.yoghee.repository.UserSsoTokenRepository;
-import com.lagavulin.yoghee.model.SsoToken;
-import com.lagavulin.yoghee.model.SsoUserInfo;
+import com.lagavulin.yoghee.service.auth.SsoToken;
+import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
 public class AppUserService {
     private final AppUserRepository appUserRepository;
     private final UserSsoTokenRepository userSsoTokenRepository;
+
+    @Transactional(rollbackFor = Exception.class)
     public AppUser ssoUserLogin(SsoType ssoType, SsoToken ssoToken, SsoUserInfo ssoUserInfo) {
         Optional<UserSsoToken> userSsoToken = userSsoTokenRepository.findBySsoTypeAndSsoUserId(ssoType, ssoUserInfo.getSsoId());
         if(userSsoToken.isPresent()) {
