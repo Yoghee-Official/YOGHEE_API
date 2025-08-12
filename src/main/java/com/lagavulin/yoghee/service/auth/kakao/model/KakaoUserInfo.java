@@ -6,7 +6,7 @@ import java.util.HashMap;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lagavulin.yoghee.model.enums.SsoType;
-import com.lagavulin.yoghee.model.SsoUserInfo;
+import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
