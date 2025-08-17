@@ -22,7 +22,7 @@ public class SecurityConfig {
                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                    .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui.html","/swagger-ui/**","/swagger-resources/**", "/v3/api-docs/**", // Swagger
-                            "/auth/**", // 인증
+                            "/auth/**", "/error", // 인증
                             "/login/page", "/images/*.png" // TODO DELETE 예정
                         ).permitAll()
                         .anyRequest().authenticated())
