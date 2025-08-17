@@ -11,7 +11,7 @@ import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import com.lagavulin.yoghee.service.auth.google.GoogleOAuthService;
 import com.lagavulin.yoghee.service.auth.kakao.KakaoOAuthService;
 import com.lagavulin.yoghee.util.JwtUtil;
-import com.lagavulin.yoghee.util.ResponseUtils;
+import com.lagavulin.yoghee.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,7 +51,15 @@ public class AuthController {
         AppUser loginUser = appUserService.ssoUserLogin(ssoType, loginToken, userInfo);
 
         String jwt = jwtUtil.generateToken(loginUser.getUserId());
-        return ResponseUtils.success(jwt);
+        return ResponseUtil.success(jwt);
+    }
+
+    @GetMapping("/jwt")
+    @Operation(summary = "JWT 토큰 생성", description = "사용자 ID로 JWT 토큰 생성")
+    @ApiResponse(responseCode = "200", description = "JWT 임시 발급용")
+    public ResponseEntity<?> generateJwt() {
+        String jwt = jwtUtil.generateToken("ddd");
+        return ResponseUtil.success(jwt);
     }
 
     private AbstractOAuthService getOAuthService(SsoType ssoType) {
