@@ -34,16 +34,16 @@ public class AppUserService {
 
         appUserRepository.save(newUser);
 
-        UserSsoToken newSsoToken = UserSsoToken.builder()
-            .accessToken(ssoToken.getAccessToken())
-            .accessTokenExpiresAt(ssoToken.getAccessTokenExpiresAt())
-            .refreshToken(ssoToken.getRefreshToken())
-            .refreshTokenExpiresAt(ssoToken.getRefreshTokenExpiresAt())
-            .ssoType(ssoType)
-            .ssoUserId(ssoUserInfo.getSsoId())
-            .user(newUser)
-            .build();
-        userSsoTokenRepository.save(newSsoToken);
+//        UserSsoToken newSsoToken = UserSsoToken.builder()
+//            .accessToken(ssoToken.getAccessToken())
+//            .accessTokenExpiresAt(ssoToken.getAccessTokenExpiresAt())
+//            .refreshToken(ssoToken.getRefreshToken())
+//            .refreshTokenExpiresAt(ssoToken.getRefreshTokenExpiresAt())
+//            .ssoType(ssoType)
+//            .ssoUserId(ssoUserInfo.getSsoId())
+//            .user(newUser)
+//            .build();
+//        userSsoTokenRepository.save(newSsoToken);
 
         return newUser;
     }
