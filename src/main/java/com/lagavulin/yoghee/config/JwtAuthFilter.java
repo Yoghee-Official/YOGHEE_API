@@ -3,6 +3,8 @@ package com.lagavulin.yoghee.config;
 import java.io.IOException;
 import java.util.Collections;
 
+import com.lagavulin.yoghee.exception.BusinessException;
+import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.CustomOAuth2User;
 import com.lagavulin.yoghee.service.auth.JwtLoginService;
 
@@ -25,38 +27,39 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtLoginService jwtLoginService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
         throws ServletException, IOException {
 
-        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        try {
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        log.info("authHeader : " + authHeader);
+            log.info("authHeader : " + authHeader);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        String token = authHeader.substring(7);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            String token = authHeader.substring(7);
 
-        log.info("Authentication set: " + SecurityContextHolder.getContext().getAuthentication());
+            log.info("Authentication set: " + SecurityContextHolder.getContext().getAuthentication());
 
-        try{
             CustomOAuth2User loginUser = jwtLoginService.parse(token);
 
             UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(loginUser.getUserId(), null, Collections.emptyList());
+
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails((request)));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.info("Authentication after set: " + SecurityContextHolder.getContext().getAuthentication());
+            log.debug("Authentication after set: " + SecurityContextHolder.getContext().getAuthentication());
 
-        }catch (RuntimeException e){
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
-            return;
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-
-        filterChain.doFilter(request, response);
     }
 }

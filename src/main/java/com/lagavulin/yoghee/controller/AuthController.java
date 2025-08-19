@@ -1,8 +1,8 @@
 package com.lagavulin.yoghee.controller;
 
-import java.util.Map;
-
 import com.lagavulin.yoghee.entity.AppUser;
+import com.lagavulin.yoghee.exception.BusinessException;
+import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.enums.SsoType;
 import com.lagavulin.yoghee.service.AppUserService;
 import com.lagavulin.yoghee.service.auth.AbstractOAuthService;
@@ -14,6 +14,8 @@ import com.lagavulin.yoghee.util.JwtUtil;
 import com.lagavulin.yoghee.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -36,19 +38,39 @@ public class AuthController {
     private final KakaoOAuthService kakaoOAuthService;
 
     @GetMapping("/sso/callback")
-    @Operation(summary = "SSO 로그인 콜백", description = "SSO 인가코드를 통해 로그인 처리")
-    @ApiResponse(responseCode = "200", description = "로그인 성공 시 JWT 토큰 반환")
-    @ApiResponse(responseCode = "400", description = "잘못된 요청")
+    @Operation(summary = "SSO 로그인 콜백", description = "SSO 인가코드를 통해 로그인 처리",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공 시 JWT 토큰 반환",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example= """
+                        {
+                            "code": 200,
+                            "status": "success",
+                            "data": "ey@@@.@@@@.@@@@"
+                        }
+                        """
+                    )
+                )
+            ),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+        })
     public ResponseEntity<?> callback(
-        @Parameter(name = "code", description = "SSO 인가코드") @RequestParam("code") String code,
+        @Parameter(name = "code", description = "[WEB] SSO 인가코드") @RequestParam(name = "code", required = false) String code,
+        @Parameter(name = "token", description = "[iOS or Android] SSO 토큰") @RequestParam(name = "token", required = false) String token,
         @Parameter(name= "sso", description = "SSO 타입 / k : 카카오, g : 구글, a : 애플") @RequestParam("sso") String sso) {
         SsoType ssoType = SsoType.fromSsoCode(sso);
         AbstractOAuthService service = getOAuthService(ssoType);
-
-        SsoToken loginToken = service.getAccessToken(code);
-        SsoUserInfo userInfo = service.getUserInfo(loginToken.getAccessToken());
-
-        AppUser loginUser = appUserService.ssoUserLogin(ssoType, loginToken, userInfo);
+        SsoUserInfo userInfo;
+        if(code != null ) {
+            SsoToken loginToken = service.getAccessToken(code);
+            userInfo = service.getUserInfo(loginToken.getAccessToken());
+        }else if(token != null) {
+            userInfo = service.getUserInfo(token);
+        }else{
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "SSO 인가코드 또는 토큰이 필요합니다.");
+        }
+        AppUser loginUser = appUserService.ssoUserLogin(ssoType, userInfo);
 
         String jwt = jwtUtil.generateToken(loginUser.getUserId());
         return ResponseUtil.success(jwt);
@@ -66,7 +88,7 @@ public class AuthController {
         return switch (ssoType) {
             case GOOGLE -> googleOAuthService;
             case KAKAO -> kakaoOAuthService;
-            default -> throw new RuntimeException("지원하지 않는 SSO 타입"); // TODO 예외 처리
+            default -> throw new BusinessException(ErrorCode.INVALID_REQUEST, ssoType.getVendor());
         };
     }
 }

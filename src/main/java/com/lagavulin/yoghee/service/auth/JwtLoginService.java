@@ -1,6 +1,8 @@
 package com.lagavulin.yoghee.service.auth;
 
 
+import com.lagavulin.yoghee.exception.BusinessException;
+import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.CustomOAuth2User;
 import com.lagavulin.yoghee.util.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -26,9 +28,10 @@ public class JwtLoginService {
         String userId = claims.getSubject();
 
         if(userId == null) {
-            throw new RuntimeException("Invalid token: missing subject");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        log.info("Parsed userId: " + userId);
+
+        log.debug("UserId: " + userId);
 
         return new CustomOAuth2User(userId);
     }
