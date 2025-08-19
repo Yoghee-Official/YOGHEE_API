@@ -1,5 +1,6 @@
 package com.lagavulin.yoghee.util;
 
+import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.ApiResponse;
 import lombok.experimental.UtilityClass;
 import org.springframework.http.ResponseEntity;
@@ -25,24 +26,13 @@ public class ResponseUtil {
         return ResponseEntity.ok(response);
     }
 
-    public static <T> ResponseEntity<ApiResponse<T>> error_400(T data) {
-        ApiResponse<T> response = ApiResponse.<T>builder()
-                                             .code(400)
-                                             .status("fail")
-                                             .errorCode("400_1")
-                                             .errorMessage("잘못된 요청입니다.")
-
-                                             .build();
-        return ResponseEntity.badRequest().body(response);
-    }
-
-    public static <T> ResponseEntity<ApiResponse<T>> error_500(T data) {
-        ApiResponse<T> response = ApiResponse.<T>builder()
-                                             .code(500)
-                                             .status("fail")
-                                             .data(data)
-                                             .errorCode("500_1")
-                                             .build();
-        return ResponseEntity.internalServerError().body(response);
+    public static ResponseEntity<ApiResponse<?>> fail(ErrorCode errorCode) {
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                                                .code(errorCode.getHttpStatus().value())
+                                                .status("fail")
+                                                .errorCode(errorCode.getErrorCode())
+                                                .errorMessage(errorCode.getErrorMessage())
+                                                .build();
+        return ResponseEntity.status(errorCode.getHttpStatus().value()).body(response);
     }
 }

@@ -1,7 +1,7 @@
 package com.lagavulin.yoghee.service.auth.google.model;
 
-import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import com.lagavulin.yoghee.model.enums.SsoType;
+import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import lombok.Getter;
 import lombok.Setter;
 

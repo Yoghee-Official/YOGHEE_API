@@ -1,5 +1,8 @@
 package com.lagavulin.yoghee.model.enums;
 
+import com.lagavulin.yoghee.exception.BusinessException;
+import com.lagavulin.yoghee.exception.ErrorCode;
+
 public enum SsoType {
     KAKAO("KAKAO", "k"),
     APPLE("APPLE", "a"),
@@ -27,6 +30,6 @@ public enum SsoType {
                 return type;
             }
         }
-        throw new RuntimeException("Invalid SSO code: " + ssoCode); // TODO 예외 처리
+        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "ssoCode"); // TODO 예외 처리
     }
 }
