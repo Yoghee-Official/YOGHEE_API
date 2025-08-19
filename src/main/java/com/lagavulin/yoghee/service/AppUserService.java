@@ -3,11 +3,8 @@ package com.lagavulin.yoghee.service;
 import java.util.Optional;
 
 import com.lagavulin.yoghee.entity.AppUser;
-import com.lagavulin.yoghee.entity.UserSsoToken;
 import com.lagavulin.yoghee.model.enums.SsoType;
 import com.lagavulin.yoghee.repository.AppUserRepository;
-import com.lagavulin.yoghee.repository.UserSsoTokenRepository;
-import com.lagavulin.yoghee.service.auth.SsoToken;
 import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -3,7 +3,6 @@ package com.lagavulin.yoghee.util;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.ApiResponse;
 import lombok.experimental.UtilityClass;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 @UtilityClass
