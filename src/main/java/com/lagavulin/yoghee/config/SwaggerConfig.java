@@ -8,12 +8,17 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
     private static final String SECURITY_SCHEME_NAME = "BEARER_AUTH";
+
+    @Value("${yoghee.domain}")
+    private String domain;
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI().info(new Info().title("Project Yoghee API")
@@ -28,6 +33,6 @@ public class SwaggerConfig {
                     .bearerFormat("JWT")
                 )
             )
-            .servers(List.of(new Server().url("https://www.yoghee.xyz")));
+            .servers(List.of(new Server().url(domain)));
     }
 }
