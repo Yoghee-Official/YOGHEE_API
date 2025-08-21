@@ -1,5 +1,6 @@
 package com.lagavulin.yoghee.util;
 
+import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.ApiResponse;
 import lombok.experimental.UtilityClass;
@@ -26,6 +27,19 @@ public class ResponseUtil {
         return ResponseEntity.ok(response);
     }
 
+    public static ResponseEntity<ApiResponse<?>> fail(BusinessException ex) {
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                                                .code(ex.getErrorCode().getHttpStatus().value())
+                                                .status("fail")
+                                                .errorCode(ex.getErrorCode().getErrorCode())
+                                                .errorMessage(ex.getMessage())
+                                                .build();
+        return ResponseEntity.status(ex.getErrorCode()
+                                       .getHttpStatus()
+                                       .value())
+                             .body(response);
+    }
+
     public static ResponseEntity<ApiResponse<?>> fail(ErrorCode errorCode) {
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                                                 .code(errorCode.getHttpStatus().value())
@@ -33,6 +47,8 @@ public class ResponseUtil {
                                                 .errorCode(errorCode.getErrorCode())
                                                 .errorMessage(errorCode.getErrorMessage())
                                                 .build();
-        return ResponseEntity.status(errorCode.getHttpStatus().value()).body(response);
+        return ResponseEntity.status(errorCode.getHttpStatus()
+                                              .value())
+                             .body(response);
     }
 }
