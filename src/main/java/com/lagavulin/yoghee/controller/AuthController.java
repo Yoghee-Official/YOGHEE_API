@@ -3,6 +3,7 @@ package com.lagavulin.yoghee.controller;
 import com.lagavulin.yoghee.entity.AppUser;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
+import com.lagavulin.yoghee.model.dto.RegistrationDto;
 import com.lagavulin.yoghee.model.enums.SsoType;
 import com.lagavulin.yoghee.service.AppUserService;
 import com.lagavulin.yoghee.service.auth.AbstractOAuthService;
@@ -22,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,6 +76,85 @@ public class AuthController {
         AppUser loginUser = appUserService.ssoUserLogin(ssoType, userInfo);
 
         String jwt = jwtUtil.generateToken(loginUser.getUserId());
+        return ResponseUtil.success(jwt);
+    }
+
+    @PostMapping("/registration")
+    @Operation(summary = "회원 가입")
+    @ApiResponse(responseCode = "200", description = "회원 가입 성공"
+    , content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 200,
+                    "status": "success",
+                    "data": "회원 가입이 완료되었습니다."
+                }
+                """
+            )
+        )
+    )
+    @ApiResponse(responseCode = "400", description = "회원 가입 실패",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 400,
+                    "status": "fail",
+                    "errorCode": "INVALID_REQUEST",
+                    "errorMessage": "잘못된 요청입니다. 이미 가입된 계정 : abc"
+                }
+                """
+            )
+        )
+    )
+    public ResponseEntity<?> register(@RequestBody RegistrationDto registrationDto){
+        appUserService.register(registrationDto);
+
+        return ResponseUtil.success("회원 가입이 완료되었습니다.");
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인")
+    @ApiResponse(responseCode = "200", description = "로그인 성공 시 JWT 토큰 반환",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 200,
+                    "status": "success",
+                    "data": "ey@@@.@@@@.@@@@"
+                }
+                """
+            )
+        )
+    )
+    @ApiResponse(responseCode = "401", description = "로그인 실패",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 401,
+                    "status": "fail",
+                    "errorCode": "UNAUTHORIZED",
+                    "errorMessage": "인증이 필요합니다."
+                }
+                """
+            )
+        )
+    )
+    @ApiResponse(responseCode = "404", description = "존재하지 않는 계정",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 404,
+                    "status": "fail",
+                    "errorCode": "USER_NOT_FOUND",
+                    "errorMessage": "사용자를 찾을 수 없습니다."
+                }
+                """
+            )
+        )
+    )
+    public ResponseEntity<?> login(@RequestBody RegistrationDto registrationDto) {
+        AppUser user = appUserService.login(registrationDto.getEmail(), registrationDto.getPassword());
+        String jwt = jwtUtil.generateToken(user.getUserId());
         return ResponseUtil.success(jwt);
     }
 
