@@ -24,6 +24,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator' // Actuator
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign' // OpenFeign
     implementation 'org.springframework.boot:spring-boot-starter-data-redis' // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-mail' // Mail
 
     implementation 'org.springframework.boot:spring-boot-starter-security' // Spring Security
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
