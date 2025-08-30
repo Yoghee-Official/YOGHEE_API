@@ -18,10 +18,13 @@ public abstract class VerificationService {
     protected abstract String getPrefix();
 
     public void verifyCode(String to, String code){
+        if(to == null || to.isEmpty() || code == null || code.isEmpty()){
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "인증 정보가 올바르지 않습니다.");
+        }
         String key = getPrefix() + to;
         String savedCode = redisTemplate.opsForValue().get(key);
         if(!code.equals(savedCode)){
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "인증 코드가 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "인증 정보가 올바르지 않습니다.");
         }
         redisTemplate.delete(to);
     }

@@ -75,7 +75,7 @@ public class SmsVerificationService extends VerificationService {
 //            }
         } catch (Exception e) {
             log.error("Failed to send SMS", e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new BusinessException(ErrorCode.SMS_SEND_FAIL);
         }
     }
 
