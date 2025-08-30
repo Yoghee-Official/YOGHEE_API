@@ -63,8 +63,19 @@ public class AuthController {
                     )
                 )
             ),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example= """
+                        {
+                            "code": 400,
+                            "status": "fail",
+                            "errorCode": "INVALID_REQUEST",
+                            "errorMessage": "SSO 인가코드 또는 토큰이 필요합니다."
+                        }
+                        """
+                    )
+                )
+            )
         })
     public ResponseEntity<?> callback(
         @Parameter(name = "code", description = "[WEB] SSO 인가코드") @RequestParam(name = "code", required = false) String code,
@@ -114,14 +125,34 @@ public class AuthController {
             )
         )
     )
-    public ResponseEntity<?> register(@RequestBody RegistrationDto registrationDto){
+    public ResponseEntity<?> register(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "userId, password, name, email, phoneNo 입력",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        description = "phoneNo 하이픈(-) 제외 숫자만",
+                        value = """
+                    {
+                        "userId": "yoghee",
+                        "password": "yogheePassword",
+                        "name": "요기",
+                        "email": "yoghee@yoghee.com",
+                        "phoneNo": "01012345678"
+                    }
+                    """)
+                })
+        )
+        @RequestBody RegistrationDto registrationDto){
         appUserService.register(registrationDto);
 
         return ResponseUtil.success("회원 가입이 완료되었습니다.");
     }
 
     @PostMapping("/login")
-    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인")
+    @Operation(summary = "로그인", description = "아이디 비밀번호로 로그인")
     @ApiResponse(responseCode = "200", description = "로그인 성공 시 JWT 토큰 반환",
         content = @Content(mediaType = "application/json",
             schema = @Schema(example= """
@@ -148,15 +179,20 @@ public class AuthController {
         )
     )
     public ResponseEntity<?> login(
-        @Parameter(
-            name = "로그인 정보",
-            description = "userId : 이이디, password : 비밀번호",
-            example = """
-                {
-                    "userId": "yoghee",
-                    "password": "yogheePassword"
-                }
-                """
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "userId, password 입력",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        value = """
+                    {
+                        "userId": "yoghee",
+                        "password": "yogheePassword"
+                    }
+                    """)
+                })
         )
         @RequestBody RegistrationDto registrationDto) {
         AppUser user = appUserService.login(registrationDto.getUserId(), registrationDto.getPassword());
@@ -193,8 +229,8 @@ public class AuthController {
     )
     @ApiResponse(responseCode = "200", description = "사용 가능한 ID")
     public ResponseEntity<?> checkId(
-        @Parameter(name = "code", description = "[WEB] SSO 인가코드")
-        @RequestParam(name = "code", required = false) String id) {
+        @Parameter(name = "id", description = "중복 확인 필요한 ID", example = "yoghee")
+        @RequestParam(name = "id", required = false) String id) {
         appUserService.idDuplicationCheck(id);
 
         return ResponseUtil.success("사용가능한 ID 입니다.");
@@ -212,47 +248,112 @@ public class AuthController {
     @Operation(summary = "아이디/비밀번호 찾기 - 인증번호 발송", description = "전화번호 or 이메일로 인증번호 발송")
     @ApiResponse(responseCode = "200", description = "인증번호 발송 성공",
         content = @Content(mediaType = "application/json",
-            schema = @Schema(example= """
-                {
-                    "code": 200,
-                    "status": "success",
-                    "data": "전화번호로 인증번호를 발송했습니다." or 이메일로 인증번호를 발송했습니다."
-                }
-                """
-            )
+            examples = {
+                @ExampleObject(
+                    name = "전화번호 인증",
+                    value = """
+                        {
+                          "code": 200,
+                          "status": "success",
+                          "data": "전화번호로 인증번호를 발송했습니다."
+                        }
+                        """
+                ),
+                @ExampleObject(
+                    name = "이메일 인증",
+                    value = """
+                        {
+                          "code": 200,
+                          "status": "success",
+                          "data": "이메일로 인증번호를 발송했습니다."
+                        }
+                        """
+                )
+            }
         )
     )
-    @ApiResponse(responseCode = "404", description = "사용 불가 ID",
+    @ApiResponse(responseCode = "400", description = "잘못된 양식",
         content = @Content(mediaType = "application/json",
-            schema = @Schema(example= """
+            examples = {
+                @ExampleObject(
+                    name = "전화번호 양식 오류",
+                    value = """
+                {
+                    "code": 400,
+                    "status": "fail",
+                    "errorCode": "INVALID_REQUEST",
+                    "errorMessage": "PHONE 형식이 올바르지 않습니다."
+                }
+                """
+                ),
+                @ExampleObject(
+                    name = "이메일 양식 오류",
+                    value = """
+                {
+                    "code": 400,
+                    "status": "fail",
+                    "errorCode": "INVALID_REQUEST",
+                    "errorMessage": "EMAIL 형식이 올바르지 않습니다."
+                }
+                """
+                )
+            }
+        )
+    )
+
+    @ApiResponse(responseCode = "404", description = "존재하지 않는 정보",
+        content = @Content(mediaType = "application/json",
+            examples = {
+                @ExampleObject(
+                    name = "전화번호 인증",
+                    value = """
                 {
                     "code": 404,
                     "status": "fail",
                     "errorCode": "USER_NOT_FOUND",
-                    "errorMessage": "해당 전화번호로 가입된 계정이 없습니다." or "해당 이메일로 가입된 계정이 없습니다."
+                    "errorMessage": "해당 전화번호로 가입된 계정이 없습니다."
                 }
                 """
-            )
+                ),
+                @ExampleObject(
+                    name = "이메일 인증",
+                    value = """
+                {
+                    "code": 404,
+                    "status": "fail",
+                    "errorCode": "USER_NOT_FOUND",
+                    "errorMessage": "해당 이메일로 가입된 계정이 없습니다."
+                }
+                """
+                )
+            }
         )
     )
-    public ResponseEntity<?> sendVerificationCodePhone(
-        @Parameter(
-            name = "사용자 정보",
-            description = "email 또는 phoneNo 중 하나 입력",
-            examples = {
-                @ExampleObject(value = """
-                {
-                    "type": "EMAIL",
-                    "email": "yoghee@yoghee.com"
-                }
-                """),
-                @ExampleObject(value = """
-                {
-                    "type": "PHONE",
-                    "phoneNo": "01012345678"
-                }
-                """)
-            }
+    public ResponseEntity<?> sendVerificationCode(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "email 또는 phoneNo 중 선택",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        name = "이메일 사용하는 경우",
+                        value = """
+                        {
+                            "type": "EMAIL",
+                            "email": "yoghee@yoghee.com"
+                        }
+                        """),
+                    @ExampleObject(
+                        name = "전화번호 사용하는 경우",
+                        description = "phoneNo 하이픈(-) 제외 숫자만",
+                        value = """
+                        {
+                            "type": "PHONE",
+                            "phoneNo": "01012345678"
+                        }
+                        """)
+            })
         ) @RequestBody VerificationDto verificationDto) {
         if (!verificationDto.validate()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, verificationDto.getType() + " 형식이 올바르지 않습니다.");
@@ -301,31 +402,32 @@ public class AuthController {
         )
     )
     public ResponseEntity<?> checkVerificationCode(
-        @Parameter(
-            name = "전화번호 또는 이메일 인증번호",
-            description = "전화번호는 반드시 하이픈(-) 제거, 이메일은 그대로 입력",
-            examples = {
-                @ExampleObject(
-                    name = "전화번호 인증",
-                    value = """
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "email 또는 phoneNo 중 선택",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        name = "이메일 사용하는 경우",
+                        value = """
                     {
-                      "type": "PHONE",
-                      "phoneNo": "01012345678",
-                      "code": "123456"
+                        "type": "EMAIL",
+                        "email": "yoghee@yoghee.com",
+                        "code": "123456"
                     }
-                    """
-                ),
-                @ExampleObject(
-                    name = "이메일 인증",
-                    value = """
+                    """),
+                    @ExampleObject(
+                        name = "전화번호 사용하는 경우",
+                        description = "phoneNo 하이픈(-) 제외 숫자만",
+                        value = """
                     {
-                      "type": "EMAIL",
-                      "email": "yoghee@yoghee.com",
-                      "code": "123456"
+                        "type": "PHONE",
+                        "phoneNo": "01012345678",
+                        "code": "123456"
                     }
-                    """
-                )
-            }
+                    """)
+                })
         ) @RequestBody VerificationDto verificationDto) {
         switch (verificationDto.getType()) {
             case EMAIL -> {
@@ -340,9 +442,25 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/reset/password")
+    @PostMapping("/password/reset")
     @Operation(summary = "비밀번호 재설정", description = "인증된 사용자 계정의 비밀번호 재설정")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDto resetPasswordDto) {
+    public ResponseEntity<?> resetPassword(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "/verification/code 에서 발급된 resetPasswordToken, 새 비밀번호 입력",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        name = "비밀번호 재설정",
+                        value = """
+                    {
+                        "resetPasswordToken": "ey@@@.@@@@.@@@@",
+                        "newPassword": "newPassword123"
+                    }
+                    """)
+                })
+        ) @RequestBody ResetPasswordDto resetPasswordDto) {
         appUserService.resetPassword(resetPasswordDto);
         return ResponseUtil.success("비밀번호가 재설정되었습니다.");
     }
