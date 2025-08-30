@@ -26,10 +26,16 @@ import org.hibernate.annotations.CreationTimestamp;
 @Table(name = "APP_USER")
 public class AppUser {
     @Id
-    @Column(name = "USER_ID")
+    @Column(name = "USER_UUID")
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
+    private String uuid;
+
+    @Column(name = "USER_ID")
     private String userId;
     private String name;
+
+    @Column(name = "PHONE_NO")
+    private String phoneNo;
     private String email;
     private String password;
     private String sso;
