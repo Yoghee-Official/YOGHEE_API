@@ -8,6 +8,7 @@ import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.enums.VerificationType;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtUtil {
     private static final String RESET_PASSWORD_SUBJECT = "ResetPassword";
+    public static final Long ACCESS_TOKEN_VALIDITY = 1000L * 60 * 60; // 1시간
+    public static final Long REFRESH_TOKEN_VALIDITY = 1000L * 60 * 60 * 24 * 30; // 7일
     @Value("${jwt.secret}")
     private String secret;
 
@@ -63,9 +66,17 @@ public class JwtUtil {
     }
 
 
-    public String generateToken(String userId) {
+    public String generateAccessToken(String userId) {
+        return getAccessToken(userId, ACCESS_TOKEN_VALIDITY); // 1시간
+    }
+
+    public String generateRefreshToken(String userId) {
+        return getAccessToken(userId, REFRESH_TOKEN_VALIDITY); // 7일
+    }
+
+    private String getAccessToken(String userId, Long durationMillis){
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 30); // 30일
+        Date expiryDate = new Date(now.getTime() + durationMillis); // durationMillis 후 만료
 
         return Jwts.builder()
                    .setSubject(userId)
@@ -75,15 +86,15 @@ public class JwtUtil {
                    .compact();
     }
 
-    public boolean validateToken(String token) {
+    public Claims parseClaims(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            return false;
+            return Jwts.parserBuilder()
+                       .setSigningKey(key)
+                       .build()
+                       .parseClaimsJws(token)
+                       .getBody();
+        }catch (ExpiredJwtException e){
+            return e.getClaims();
         }
     }
 }
