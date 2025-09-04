@@ -3,6 +3,7 @@ package com.lagavulin.yoghee.controller;
 import com.lagavulin.yoghee.entity.AppUser;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
+import com.lagavulin.yoghee.model.TokenResponse;
 import com.lagavulin.yoghee.model.dto.RegistrationDto;
 import com.lagavulin.yoghee.model.dto.ResetPasswordDto;
 import com.lagavulin.yoghee.model.dto.VerificationDto;
@@ -10,6 +11,7 @@ import com.lagavulin.yoghee.model.enums.SsoType;
 import com.lagavulin.yoghee.model.enums.VerificationType;
 import com.lagavulin.yoghee.service.AppUserService;
 import com.lagavulin.yoghee.service.auth.AbstractOAuthService;
+import com.lagavulin.yoghee.service.auth.RefreshTokenService;
 import com.lagavulin.yoghee.service.auth.SsoToken;
 import com.lagavulin.yoghee.service.auth.SsoUserInfo;
 import com.lagavulin.yoghee.service.auth.google.GoogleOAuthService;
@@ -18,6 +20,7 @@ import com.lagavulin.yoghee.service.verfication.EmailVerificationService;
 import com.lagavulin.yoghee.service.verfication.SmsVerificationService;
 import com.lagavulin.yoghee.util.JwtUtil;
 import com.lagavulin.yoghee.util.ResponseUtil;
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -45,6 +48,7 @@ public class AuthController {
     private final AppUserService appUserService;
     private final GoogleOAuthService googleOAuthService;
     private final KakaoOAuthService kakaoOAuthService;
+    private final RefreshTokenService refreshTokenService;
     private final EmailVerificationService emailService;
     private final SmsVerificationService smsService;
 
@@ -57,9 +61,14 @@ public class AuthController {
                         {
                             "code": 200,
                             "status": "success",
-                            "data": "ey@@@.@@@@.@@@@"
+                            "data": {
+                                "accessToken" : "ey@@@.@@@@.@@@@",
+                                "refreshToken" : "ey@@@.@@@@.@@@@",
+                                "accessTokenExpiresIn" : 3600,
+                                "refreshTokenExpiresIn" : 1209600
+                            }
                         }
-                        """
+                        """, description = "accessToken : 엑세스 토큰 \nrefreshToken : 리프레시 토큰\naccessTokenExpiresIn : 엑세스 토큰 만료시간(초)\nrefreshTokenExpiresIn : 리프레시 토큰 만료시간(초)"
                     )
                 )
             ),
@@ -94,8 +103,14 @@ public class AuthController {
         }
         AppUser loginUser = appUserService.ssoUserLogin(ssoType, userInfo);
 
-        String jwt = jwtUtil.generateToken(loginUser.getUuid());
-        return ResponseUtil.success(jwt);
+        String accessToken = jwtUtil.generateAccessToken(loginUser.getUuid());
+        String refreshToken = jwtUtil.generateRefreshToken(loginUser.getUuid());
+        refreshTokenService.saveRefreshToken(loginUser.getUuid(), refreshToken);
+
+        return ResponseUtil.success(TokenResponse.builder()
+                                                 .accessToken(accessToken)
+                                                 .refreshToken(refreshToken)
+                                                 .build());
     }
 
     @PostMapping("/registration")
@@ -156,12 +171,18 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "로그인 성공 시 JWT 토큰 반환",
         content = @Content(mediaType = "application/json",
             schema = @Schema(example= """
-                {
-                    "code": 200,
-                    "status": "success",
-                    "data": "ey@@@.@@@@.@@@@"
-                }
-                """
+                        {
+                            "code": 200,
+                            "status": "success",
+                            "data": {
+                                "accessToken" : "ey@@@.@@@@.@@@@",
+                                "refreshToken" : "ey@@@.@@@@.@@@@",
+                                "accessTokenExpiresIn" : 3600,
+                                "refreshTokenExpiresIn" : 1209600
+                            }
+                        }
+                        """,
+                description = "accessToken : 엑세스 토큰 \nrefreshToken : 리프레시 토큰\naccessTokenExpiresIn : 엑세스 토큰 만료시간(초)\nrefreshTokenExpiresIn : 리프레시 토큰 만료시간(초)"
             )
         )
     )
@@ -195,9 +216,16 @@ public class AuthController {
                 })
         )
         @RequestBody RegistrationDto registrationDto) {
-        AppUser user = appUserService.login(registrationDto.getUserId(), registrationDto.getPassword());
-        String jwt = jwtUtil.generateToken(user.getUuid());
-        return ResponseUtil.success(jwt);
+        AppUser loginUser = appUserService.login(registrationDto.getUserId(), registrationDto.getPassword());
+
+        String accessToken = jwtUtil.generateAccessToken(loginUser.getUuid());
+        String refreshToken = jwtUtil.generateRefreshToken(loginUser.getUuid());
+        refreshTokenService.saveRefreshToken(loginUser.getUuid(), refreshToken);
+
+        return ResponseUtil.success(TokenResponse.builder()
+                                                 .accessToken(accessToken)
+                                                 .refreshToken(refreshToken)
+                                                 .build());
     }
 
     @GetMapping("/id/check")
@@ -240,7 +268,8 @@ public class AuthController {
     @Operation(summary = "JWT 토큰 생성", description = "사용자 ID로 JWT 토큰 생성")
     @ApiResponse(responseCode = "200", description = "JWT 임시 발급용")
     public ResponseEntity<?> generateJwt() {
-        String jwt = jwtUtil.generateToken("ddd");
+        String jwt = jwtUtil.generateAccessToken("ddd");
+
         return ResponseUtil.success(jwt);
     }
 
@@ -443,7 +472,53 @@ public class AuthController {
     }
 
     @PostMapping("/password/reset")
-    @Operation(summary = "비밀번호 재설정", description = "인증된 사용자 계정의 비밀번호 재설정")
+    @Operation(summary = "아이디/비밀번호 찾기 - 인증번호 검증", description = "전화번호 or 이메일로 발송된 인증번호 확인")
+    @ApiResponse(responseCode = "200", description = "인증번호 확인 성공, 비밀번호 재설정용 JWT 토큰 발급",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 200,
+                    "status": "success",
+                    "data": "비밀번호가 재설정되었습니다."
+                }
+                """
+            )
+        )
+    )
+    @ApiResponse(responseCode = "400", description = "인증번호 불일치",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(examples= {"""
+                {
+                    "code": 400,
+                    "status": "fail",
+                    "errorCode": "INVALID_REQUEST",
+                    "errorMessage":  "비밀번호는 8자 이상 15자 이하이며 영문, 숫자, 특수문자를 모두 포함해야 합니다."
+                }
+                """,
+                """
+                {
+                    "code": 400,
+                    "status": "fail",
+                    "errorCode": "INVALID_REQUEST",
+                    "errorMessage":  "지원하지 않는 타입입니다."
+                }
+                """,
+            })
+        )
+    )
+    @ApiResponse(responseCode = "400", description = "인증번호 불일치",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 401,
+                    "status": "fail",
+                    "errorCode": "UNAUTHORIZED",
+                    "errorMessage": "유효하지 않은 토큰입니다."
+                }
+                """
+            )
+        )
+    )
     public ResponseEntity<?> resetPassword(
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "/verification/code 에서 발급된 resetPasswordToken, 새 비밀번호 입력",
@@ -463,6 +538,46 @@ public class AuthController {
         ) @RequestBody ResetPasswordDto resetPasswordDto) {
         appUserService.resetPassword(resetPasswordDto);
         return ResponseUtil.success("비밀번호가 재설정되었습니다.");
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "accessToken 재발급", description = "refreshToken을 통해 accessToken 재발급")
+    @ApiResponse(responseCode = "200", description = "accessToken 재발급 성공",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(example= """
+                {
+                    "code": 200,
+                    "status": "success",
+                    "data": {
+                        "accessToken" : "ey@@@.@@@@.@@@@",
+                        "refreshToken" : "ey@@@.@@@@.@@@@",
+                        "accessTokenExpiresIn" : 3600,
+                        "refreshTokenExpiresIn" : 1209600
+                    }
+                }
+                """
+            )
+        )
+    )
+    @ApiResponse(responseCode = "401", description = "refreshToken 만료, 재로그인 필요",
+        content = @Content(mediaType = "application/json",
+            schema = @Schema(examples= {"""
+                {
+                    "code": 401,
+                    "status": "fail",
+                    "errorCode": "REFRESH_TOKEN_EXPIRED",
+                    "errorMessage":  "만료된 리프레쉬 토큰입니다."
+                }
+                """
+            })
+        )
+    )
+    public ResponseEntity<?> refresh(@RequestBody TokenResponse token) {
+        Claims claims = refreshTokenService.validateRefreshToken(token.getRefreshToken());
+        String userId = claims.getSubject();
+
+        token.setAccessToken(jwtUtil.generateAccessToken(userId));
+        return ResponseUtil.success(token);
     }
 
     private AbstractOAuthService getOAuthService(SsoType ssoType) {
