@@ -3,10 +3,14 @@ package com.lagavulin.yoghee.config;
 import java.io.IOException;
 import java.util.Collections;
 
-import com.lagavulin.yoghee.exception.BusinessException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.CustomOAuth2User;
 import com.lagavulin.yoghee.service.auth.JwtLoginService;
+import com.lagavulin.yoghee.util.ResponseUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -42,12 +47,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             String token = authHeader.substring(7);
 
-            log.info("Authentication set: " + SecurityContextHolder.getContext().getAuthentication());
-
             CustomOAuth2User loginUser = jwtLoginService.parse(token);
 
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(loginUser.getUserId(), null, Collections.emptyList());
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(loginUser.getUserId(), null, Collections.emptyList());
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails((request)));
 
@@ -56,9 +58,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             log.debug("Authentication after set: " + SecurityContextHolder.getContext().getAuthentication());
 
             filterChain.doFilter(request, response);
-
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+
+            ResponseEntity<?> error;
+            if(e instanceof ExpiredJwtException) {
+                error = ResponseUtil.fail(ErrorCode.ACCESS_TOKEN_EXPIRED);
+            }else if(e instanceof MalformedJwtException) {
+                error = ResponseUtil.fail(ErrorCode.INVALID_TOKEN);
+            }else if (e instanceof SignatureException) {
+                error = ResponseUtil.fail(ErrorCode.INVALID_TOKEN);
+            } else{
+                error = ResponseUtil.fail(ErrorCode.UNAUTHORIZED);
+            }
+            ObjectMapper mapper = new ObjectMapper();
+            String json = mapper.writeValueAsString(error.getBody());
+
+            response.getWriter().write(json);
+            response.getWriter().flush();
         }
     }
 }

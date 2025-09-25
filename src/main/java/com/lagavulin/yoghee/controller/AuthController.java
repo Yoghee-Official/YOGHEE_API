@@ -267,8 +267,9 @@ public class AuthController {
     @GetMapping("/jwt")
     @Operation(summary = "JWT 토큰 생성", description = "사용자 ID로 JWT 토큰 생성")
     @ApiResponse(responseCode = "200", description = "JWT 임시 발급용")
-    public ResponseEntity<?> generateJwt() {
-        String jwt = jwtUtil.generateAccessToken("ddd");
+    public ResponseEntity<?> generateJwt(
+        @RequestParam("id") String id) {
+        String jwt = jwtUtil.generateAccessToken(id);
 
         return ResponseUtil.success(jwt);
     }
@@ -561,7 +562,7 @@ public class AuthController {
     )
     @ApiResponse(responseCode = "401", description = "refreshToken 만료, 재로그인 필요",
         content = @Content(mediaType = "application/json",
-            schema = @Schema(examples= {"""
+            schema = @Schema(example= """
                 {
                     "code": 401,
                     "status": "fail",
@@ -569,10 +570,26 @@ public class AuthController {
                     "errorMessage":  "만료된 리프레쉬 토큰입니다."
                 }
                 """
-            })
+            )
         )
     )
-    public ResponseEntity<?> refresh(@RequestBody TokenResponse token) {
+    public ResponseEntity<?> refresh(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "로그인에서 발급된 token 모델 그대로 입력",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                examples = {
+                    @ExampleObject(
+                        name = "token 모델",
+                        value = """
+                    {
+                        "accessToken": "ey@@@.@@@@.@@@@",
+                        "refreshToken": "ey@@@.@@@@.@@@@"
+                    }
+                    """)
+                })
+        ) @RequestBody TokenResponse token) {
         Claims claims = refreshTokenService.validateRefreshToken(token.getRefreshToken());
         String userId = claims.getSubject();
 
