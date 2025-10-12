@@ -109,7 +109,7 @@ public class MainController {
                                             "address" : "강원 춘천시 삼악산 어디",
                                             "description" : "산속무서웡",
                                             "thumbnail" : "https://i.namu.wiki/i/wdQGP_DcVLHaa6mvhqq8LryxHAjlYv3pPdwAYyHCf-WjbqsGkEUyJo23mQbQkWbikzZrfgj3G7HywgQ3v-0lRyzW-h04BXet_uY-YWGOmm6FwwK-bsNguYIjFhKeoz9PHzyw7R_kWvRYUUZwENequQ.webp",
-                                            "instructor" : "오정환",
+                                            "masterId" : "a1234-56789",
                                             "price" : 50000,
                                             "rating" : 4.8,
                                             "review" : 120,
