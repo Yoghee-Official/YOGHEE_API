@@ -9,7 +9,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 public class MainApiDto {
     private List<TodayClassDto> todayClass;
     private List<YogaClassDto> recommendClass;
