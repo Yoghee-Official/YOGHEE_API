@@ -14,6 +14,6 @@ public class YogaReviewDto {
     private String userUuid;
     private String thumbnail;
     private String content;
-    private int rating;
+    private Number rating;
     private Date createdAt;
 }

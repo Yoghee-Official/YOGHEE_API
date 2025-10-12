@@ -1,5 +1,6 @@
 package com.lagavulin.yoghee.entity;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,7 +34,7 @@ public class YogaClass {
 
     private String type;
 
-    private int price;
+    private Long price;
 
     @Column(name = "DESC")
     private String description;
@@ -43,11 +44,11 @@ public class YogaClass {
 
     private String address;
 
-    private double latitude;
+    private Double latitude;
 
-    private double longitude;
+    private Double longitude;
 
-    private int capacity;
+    private Long capacity;
 
     @Column(name = "MAIN_DISPLAY")
     private String mainDisplay;
@@ -57,12 +58,16 @@ public class YogaClass {
     @Column(name = "MASTER_ID")
     private String masterId;
 
+    @Column(name = "CREATED_AT")
+    private Date createdAt;
+
     @ManyToMany
     @JoinTable(
         name = "CLASS_CATEGORY",
         joinColumns = @JoinColumn(name = "CLASS_ID"),
         inverseJoinColumns = @JoinColumn(name = "CATEGORY_ID")
     )
+    @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
     public YogaClassDto toDto(){

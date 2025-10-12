@@ -12,6 +12,8 @@ import com.lagavulin.yoghee.model.dto.ClassClickCountDto;
 import com.lagavulin.yoghee.model.dto.TodayClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaReviewDto;
+import com.lagavulin.yoghee.model.enums.ClassSortType;
+import com.lagavulin.yoghee.repository.CategoryRepository;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
 import com.lagavulin.yoghee.repository.YogaClassClickRepository;
 import com.lagavulin.yoghee.repository.YogaClassRepository;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class ClassService {
     private final YogaClassRepository yogaClassRepository;
     private final UserCategoryRepository userCategoryRepository;
+    private final CategoryRepository categoryRepository;
     private final YogaClassClickRepository yogaClassClickRepository;
     private final YogaClassReviewRepository yogaClassReviewRepository;
 
@@ -50,10 +53,7 @@ public class ClassService {
             int remaining = n - classIds.size();
             classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
         }
-        return yogaClassRepository.findAllByClassIdIn(classIds)
-                                  .stream()
-                                  .map(YogaClass::toDto)
-                                  .toList();
+        return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
     }
     /**
      * 사용자 관심 카테고리 기반 클래스 N개 (랜덤) <br>
@@ -74,10 +74,7 @@ public class ClassService {
             classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
         }
 
-        return yogaClassRepository.findAllByClassIdIn(classIds)
-                                  .stream()
-                                  .map(YogaClass::toDto)
-                                  .toList();
+        return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
     }
 
     /**
@@ -112,5 +109,13 @@ public class ClassService {
     public List<YogaReviewDto> getRecentNClassReviewWithImage(String type, int n) {
         return yogaClassReviewRepository.findYogaClassReviewByCreatedAt(type, PageRequest.of(0, n));
 
+    }
+
+    public List<YogaClassDto> getCategoryClasses(String type, String categoryId, ClassSortType classSortType) {
+        return switch (classSortType) {
+            case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndCategoryId(type, categoryId);
+            case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId);
+            case RECENT -> yogaClassRepository.findRecentClassByTypeAndCategoryId(type, categoryId);
+        };
     }
 }
