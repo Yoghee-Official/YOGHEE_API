@@ -27,10 +27,10 @@ public class SmsVerificationService extends VerificationService {
 
     private final NCloudSensClient nCloudSensClient;
 
-    @Value("${ncloud.sens.accessKey}")
+    @Value("${ncloud.accessKey}")
     private String accessKey;
 
-    @Value("${ncloud.sens.secretKey}")
+    @Value("${ncloud.secretKey}")
     private String secretKey;
 
     @Value("${ncloud.sens.serviceId}")
