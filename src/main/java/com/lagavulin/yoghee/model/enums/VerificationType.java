@@ -11,6 +11,6 @@ public enum VerificationType {
                 return type;
             }
         }
-        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "verification type"); // TODO 예외 처리
+        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "verification type");
     }
 }
