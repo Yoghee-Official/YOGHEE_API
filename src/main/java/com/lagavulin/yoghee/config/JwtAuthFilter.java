@@ -39,8 +39,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-            log.info("authHeader : " + authHeader);
-
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 filterChain.doFilter(request, response);
                 return;
@@ -55,13 +53,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.debug("Authentication after set: " + SecurityContextHolder.getContext().getAuthentication());
-
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
 
+            log.error("JwtAuthFilter: {}", e.getMessage());
             ResponseEntity<?> error;
             if(e instanceof ExpiredJwtException) {
                 error = ResponseUtil.fail(ErrorCode.ACCESS_TOKEN_EXPIRED);
