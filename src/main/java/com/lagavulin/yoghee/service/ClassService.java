@@ -2,20 +2,19 @@ package com.lagavulin.yoghee.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import com.lagavulin.yoghee.entity.UserCategory;
+import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaClass;
-import com.lagavulin.yoghee.model.dto.ClassClickCountDto;
-import com.lagavulin.yoghee.model.dto.TodayClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaReviewDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
-import com.lagavulin.yoghee.repository.CategoryRepository;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
-import com.lagavulin.yoghee.repository.YogaClassClickRepository;
+import com.lagavulin.yoghee.repository.UserFavoriteRepository;
 import com.lagavulin.yoghee.repository.YogaClassRepository;
 import com.lagavulin.yoghee.repository.YogaClassReviewRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,15 +26,14 @@ import org.springframework.stereotype.Service;
 public class ClassService {
     private final YogaClassRepository yogaClassRepository;
     private final UserCategoryRepository userCategoryRepository;
-    private final CategoryRepository categoryRepository;
-    private final YogaClassClickRepository yogaClassClickRepository;
     private final YogaClassReviewRepository yogaClassReviewRepository;
+    private final UserFavoriteRepository userFavoriteRepository;
 
     /**
      * 오늘 스케줄 조회 <br>
      * /api/main/ - [로그인] data.todaySchedule
      */
-    public List<TodayClassDto> getTodaySchedule(String userUuid) {
+    public List<YogaClassDto> getTodaySchedule(String userUuid) {
         return yogaClassRepository.findTodayClassesByUser(userUuid);
     }
 
@@ -45,10 +43,7 @@ public class ClassService {
      */
     public List<YogaClassDto> getClickedTopNClassLastMDays(String type, int n, int m){
         LocalDate fromDate = LocalDate.now().minusDays(m);
-        Set<String> classIds = new HashSet<>(yogaClassClickRepository.findTopClickedClasses(type, fromDate, PageRequest.of(0, n))
-                                                                        .stream()
-                                                                        .map(ClassClickCountDto::getClassId)
-                                                                        .toList());
+        Set<String> classIds = new HashSet<>(yogaClassRepository.findTopClickedClasses(type, fromDate, PageRequest.of(0, n)));
         if(classIds.size() < n){
             int remaining = n - classIds.size();
             classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
@@ -84,10 +79,6 @@ public class ClassService {
     public List<YogaClassDto> getNewSignUpTopNClassSinceStartDate(String type, int n){
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
         Set<String> classIds = new HashSet<>(yogaClassRepository.findNewSignUpTopNClassSinceStartDate(type, oneWeekAgo, PageRequest.of(0, n)));
-        if(classIds.size() < n){
-            int remaining = n - classIds.size();
-            classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
-        }
         return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
     }
 
@@ -95,11 +86,8 @@ public class ClassService {
      * 메인 노출 클래스 N개 (랜덤) - MAIN_DISPLAY = 'Y' <br>
      * /api/main/ - [공통] data.recommendClass<br>
      */
-    public List<YogaClassDto> getRecommendNClass(String type, int n) {
-        return yogaClassRepository.findAllByMainDisplay(type, PageRequest.of(0, n))
-                                  .stream()
-                                  .map(YogaClass::toDto)
-                                  .toList();
+    public List<YogaClassDto> getMainDisplayNClass(String type, int n) {
+        return yogaClassRepository.findAllByMainDisplay(type, PageRequest.of(0, n));
     }
 
     /**
@@ -117,5 +105,14 @@ public class ClassService {
             case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId);
             case RECENT -> yogaClassRepository.findRecentClassByTypeAndCategoryId(type, categoryId);
         };
+    }
+
+    public void addFavoriteClass(String userUuid, String classId) {
+        userFavoriteRepository.save(UserFavorite.builder()
+                                                .id(classId)
+                                                .type("CLASS")
+                                                .userUuid(userUuid)
+                                                .createdAt(new Date())
+                                                .build());
     }
 }

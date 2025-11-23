@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -66,6 +68,7 @@ public class ClassController {
                                         }
                                     ]
                                 }
+                            }
                             """
                     )
                 )
@@ -80,5 +83,17 @@ public class ClassController {
         @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최근 등록순")
         @RequestParam(name = "sort", required = false) String sort){
         return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort)));
+    }
+
+    @PostMapping("/favorite/")
+    @Operation(summary = "클래스찜 API", description = "유저 JWT 토큰을 통해 요가 클래스 찜")
+    public ResponseEntity<?> favoriteClass(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
+        @Parameter(name = "classId", description = "Class ID")
+        @RequestBody String classId){
+        String userUuid = principal.getName();
+        classService.addFavoriteClass(userUuid, classId);
+
+        return ResponseUtil.success("Successfully added favorite class " + classId);
     }
 }

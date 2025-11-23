@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "CLASS")
 public class YogaClass {
+
     @Id
     @Column(name = "CLASS_ID")
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
@@ -34,21 +35,21 @@ public class YogaClass {
 
     private String type;
 
-    private Long price;
+    private int price;
 
     @Column(name = "DESC")
     private String description;
 
-    @Column(name = "STORE_ID")
-    private String storeId;
+    @Column(name = "CENTER_ID")
+    private String centerId;
 
     private String address;
 
-    private Double latitude;
+    private double latitude;
 
-    private Double longitude;
+    private double longitude;
 
-    private Long capacity;
+    private long capacity;
 
     @Column(name = "MAIN_DISPLAY")
     private String mainDisplay;
@@ -67,10 +68,9 @@ public class YogaClass {
         joinColumns = @JoinColumn(name = "CLASS_ID"),
         inverseJoinColumns = @JoinColumn(name = "CATEGORY_ID")
     )
-    @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
-    public YogaClassDto toDto(){
+    public YogaClassDto toDto() {
         return YogaClassDto.builder()
                            .className(name)
                            .classId(classId)

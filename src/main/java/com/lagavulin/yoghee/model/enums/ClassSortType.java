@@ -1,14 +1,19 @@
 package com.lagavulin.yoghee.model.enums;
 
-import lombok.Getter;
-
-@Getter
 public enum ClassSortType {
     RECOMMEND("recommend", "추천순"),
     REVIEW("review", "리뷰많은순"),
     RECENT("recent", "최신순");
     private final String code;
     private final String description;
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getDescription() {
+        return description;
+    }
 
     ClassSortType(String code, String description) {
         this.code = code;

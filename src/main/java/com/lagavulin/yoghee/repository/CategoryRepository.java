@@ -17,4 +17,6 @@ public interface CategoryRepository extends JpaRepository<Category, String> {
         ORDER BY RAND()
     """)
     List<Category> findRandomCategoriesWithClass(String type, Pageable pageable);
+
+    List<Category> findAllByTypeAndMainDisplayEquals(String type, String mainDisplay);
 }

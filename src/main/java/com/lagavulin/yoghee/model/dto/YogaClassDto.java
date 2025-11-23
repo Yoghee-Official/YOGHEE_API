@@ -29,6 +29,26 @@ public class YogaClassDto {
     private Number rating;
     private Double latitude;
     private Double longitude;
+    private String scheduleId;
+    private String startTime;
+    private String endTime;
+
+    public YogaClassDto(String classId, String classname, String description, String thumbnail){
+        this.classId = classId;
+        this.className = classname;
+        this.description = description;
+        this.thumbnail = thumbnail;
+    }
+
+    public YogaClassDto(String classId, String className, String type, String address, String scheduleId, String startTime, String endTime){
+        this.classId = classId;
+        this.className = className;
+        this.type = type;
+        this.address = address;
+        this.scheduleId = scheduleId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
 
     public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number rating, Number review) {
         this.classId = classId;

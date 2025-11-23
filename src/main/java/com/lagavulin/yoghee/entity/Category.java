@@ -25,4 +25,16 @@ public class Category {
 
     @Column(name = "DESC")
     private String description;
+
+    @Column(name = "MAIN_DISPLAY")
+    private String mainDisplay;
+
+    @Column(name = "TYPE")
+    private String type;
+
+    public Category(String categoryId, String name, String description){
+        this.categoryId = categoryId;
+        this.name = name;
+        this.description = description;
+    }
 }

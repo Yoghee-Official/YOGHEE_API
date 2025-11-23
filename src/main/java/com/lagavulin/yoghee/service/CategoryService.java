@@ -20,4 +20,8 @@ public class CategoryService {
     public List<Category> getRandomNCategoriesWithClass(String type, int n) {
         return categoryRepository.findRandomCategoriesWithClass(type, PageRequest.of(0, n));
     }
+
+    public List<Category> getMainDisplay(String type) {
+        return categoryRepository.findAllByTypeAndMainDisplayEquals(type, "Y");
+    }
 }

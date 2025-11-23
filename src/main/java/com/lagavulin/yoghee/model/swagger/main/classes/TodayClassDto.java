@@ -1,12 +1,10 @@
-package com.lagavulin.yoghee.model.dto;
+package com.lagavulin.yoghee.model.swagger.main.classes;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 public class TodayClassDto {
     private String classId;
     private String className;
