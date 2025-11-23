@@ -1,6 +1,6 @@
 package com.lagavulin.yoghee.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class YogaClassDto {
     private String classId;
     private String className;
@@ -21,19 +21,52 @@ public class YogaClassDto {
     private String description;
     private String thumbnail;
     private String masterId;
-    private double rating;
-    private long review;
-    private long price;
-    private long newMember;
-    private long capacity;
-    private double latitude;
-    private double longitude;
+    private String masterName;
+    private Number review;
+    private Number price;
+    private Long newMember;
+    private Long capacity;
+    private Number rating;
+    private Double latitude;
+    private Double longitude;
+    private String scheduleId;
+    private String startTime;
+    private String endTime;
 
-    public YogaClassDto(String classId, String className, String thumbnail, String masterId, double rating, long review) {
+    public YogaClassDto(String classId, String classname, String description, String thumbnail){
+        this.classId = classId;
+        this.className = classname;
+        this.description = description;
+        this.thumbnail = thumbnail;
+    }
+
+    public YogaClassDto(String classId, String className, String type, String address, String scheduleId, String startTime, String endTime){
+        this.classId = classId;
+        this.className = className;
+        this.type = type;
+        this.address = address;
+        this.scheduleId = scheduleId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number rating, Number review) {
         this.classId = classId;
         this.className = className;
         this.thumbnail = thumbnail;
         this.masterId = masterId;
+        this.masterName = masterName;
+        this.rating = rating;
+        this.review = review;
+    }
+
+    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number price, Number rating, Number review) {
+        this.classId = classId;
+        this.className = className;
+        this.thumbnail = thumbnail;
+        this.masterId = masterId;
+        this.masterName = masterName;
+        this.price = price;
         this.rating = rating;
         this.review = review;
     }

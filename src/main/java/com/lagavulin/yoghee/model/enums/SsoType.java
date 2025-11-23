@@ -30,6 +30,6 @@ public enum SsoType {
                 return type;
             }
         }
-        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "ssoCode"); // TODO 예외 처리
+        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "ssoCode");
     }
 }

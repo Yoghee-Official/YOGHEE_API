@@ -1,5 +1,6 @@
 package com.lagavulin.yoghee.entity;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "CLASS")
 public class YogaClass {
+
     @Id
     @Column(name = "CLASS_ID")
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
@@ -38,8 +40,8 @@ public class YogaClass {
     @Column(name = "DESC")
     private String description;
 
-    @Column(name = "STORE_ID")
-    private String storeId;
+    @Column(name = "CENTER_ID")
+    private String centerId;
 
     private String address;
 
@@ -47,7 +49,7 @@ public class YogaClass {
 
     private double longitude;
 
-    private int capacity;
+    private long capacity;
 
     @Column(name = "MAIN_DISPLAY")
     private String mainDisplay;
@@ -57,6 +59,9 @@ public class YogaClass {
     @Column(name = "MASTER_ID")
     private String masterId;
 
+    @Column(name = "CREATED_AT")
+    private Date createdAt;
+
     @ManyToMany
     @JoinTable(
         name = "CLASS_CATEGORY",
@@ -65,7 +70,7 @@ public class YogaClass {
     )
     private Set<Category> categories = new HashSet<>();
 
-    public YogaClassDto toDto(){
+    public YogaClassDto toDto() {
         return YogaClassDto.builder()
                            .className(name)
                            .classId(classId)

@@ -33,6 +33,7 @@ public class AppUser {
     @Column(name = "USER_ID")
     private String userId;
     private String name;
+    private String nickname;
 
     @Column(name = "PHONE_NO")
     private String phoneNo;

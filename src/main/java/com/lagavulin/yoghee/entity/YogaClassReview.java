@@ -29,7 +29,7 @@ public class YogaClassReview {
     @Column(name = "USER_UUID")
     private String userUuid;
 
-    private int rating;
+    private Double rating;
 
     private String content;
 
