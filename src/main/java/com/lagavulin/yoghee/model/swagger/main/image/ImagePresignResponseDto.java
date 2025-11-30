@@ -12,7 +12,7 @@ import lombok.Setter;
 public class ImagePresignResponseDto {
 
     @Schema(description = "업로드할 이미지 종류", example = "class/center/profile", required = true)
-    private String bucket;
+    private String type;
 
     @Schema(description = "업로드할 이미지 파일 정보 리스트", required = true)
     private List<ImagePresignInfo> files;
