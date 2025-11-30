@@ -24,35 +24,34 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ClassService {
+
     private final YogaClassRepository yogaClassRepository;
     private final UserCategoryRepository userCategoryRepository;
     private final YogaClassReviewRepository yogaClassReviewRepository;
     private final UserFavoriteRepository userFavoriteRepository;
 
     /**
-     * 오늘 스케줄 조회 <br>
-     * /api/main/ - [로그인] data.todaySchedule
+     * 오늘 스케줄 조회 <br> /api/main/ - [로그인] data.todaySchedule
      */
     public List<YogaClassDto> getTodaySchedule(String userUuid) {
         return yogaClassRepository.findTodayClassesByUser(userUuid);
     }
 
     /**
-     * 클릭수 순으로 N개 (최근 M일 이내), 부족한 경우 랜덤으로 N개 보충 <br>
-     * /api/main/ - [비로그인] data.customizedClass
+     * 클릭수 순으로 N개 (최근 M일 이내), 부족한 경우 랜덤으로 N개 보충 <br> /api/main/ - [비로그인] data.customizedClass
      */
-    public List<YogaClassDto> getClickedTopNClassLastMDays(String type, int n, int m){
+    public List<YogaClassDto> getClickedTopNClassLastMDays(String type, int n, int m) {
         LocalDate fromDate = LocalDate.now().minusDays(m);
         Set<String> classIds = new HashSet<>(yogaClassRepository.findTopClickedClasses(type, fromDate, PageRequest.of(0, n)));
-        if(classIds.size() < n){
+        if (classIds.size() < n) {
             int remaining = n - classIds.size();
             classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
         }
-        return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
+        return yogaClassRepository.findWithReviewStatsByClassIds(classIds, null);
     }
+
     /**
-     * 사용자 관심 카테고리 기반 클래스 N개 (랜덤) <br>
-     * /api/main/ - [로그인] data.customizedClass
+     * 사용자 관심 카테고리 기반 클래스 N개 (랜덤) <br> /api/main/ - [로그인] data.customizedClass
      */
     public List<YogaClassDto> getUserCategoryNClass(String type, String userUuid, int n) {
         List<String> categoryIds = userCategoryRepository.findAllByUserUuid(userUuid)
@@ -64,35 +63,32 @@ public class ClassService {
                                                                 .stream()
                                                                 .map(YogaClass::getClassId)
                                                                 .toList());
-        if(classIds.size() < n){
+        if (classIds.size() < n) {
             int remaining = n - classIds.size();
             classIds.addAll(yogaClassRepository.findRandomNClassByType(type, PageRequest.of(0, remaining)));
         }
 
-        return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
+        return yogaClassRepository.findWithReviewStatsByClassIds(classIds, userUuid);
     }
 
     /**
-     * 최근 7일 이내 신규 회원이 가장 많이 등록한 클래스 N개, 부족한 경우 랜덤으로 N개 보충 <br>
-     * /api/main/ - [공통] data.recommendClass<br>
+     * 최근 7일 이내 신규 회원이 가장 많이 등록한 클래스 N개, 부족한 경우 랜덤으로 N개 보충 <br> /api/main/ - [공통] data.recommendClass<br>
      */
-    public List<YogaClassDto> getNewSignUpTopNClassSinceStartDate(String type, int n){
+    public List<YogaClassDto> getNewSignUpTopNClassSinceStartDate(String type, int n, String userUuid) {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
         Set<String> classIds = new HashSet<>(yogaClassRepository.findNewSignUpTopNClassSinceStartDate(type, oneWeekAgo, PageRequest.of(0, n)));
-        return yogaClassRepository.findWithReviewStatsByClassIds(classIds);
+        return yogaClassRepository.findWithReviewStatsByClassIds(classIds, userUuid);
     }
 
     /**
-     * 메인 노출 클래스 N개 (랜덤) - MAIN_DISPLAY = 'Y' <br>
-     * /api/main/ - [공통] data.recommendClass<br>
+     * 메인 노출 클래스 N개 (랜덤) - MAIN_DISPLAY = 'Y' <br> /api/main/ - [공통] data.recommendClass<br>
      */
     public List<YogaClassDto> getMainDisplayNClass(String type, int n) {
         return yogaClassRepository.findAllByMainDisplay(type, PageRequest.of(0, n));
     }
 
     /**
-     * 이미지 있는 후기 최근순으로 N개
-     * /api/main/ - [공통] data.newReview<br>
+     * 이미지 있는 후기 최근순으로 N개 /api/main/ - [공통] data.newReview<br>
      */
     public List<YogaReviewDto> getRecentNClassReviewWithImage(String type, int n) {
         return yogaClassReviewRepository.findYogaClassReviewByCreatedAt(type, PageRequest.of(0, n));
@@ -104,6 +100,9 @@ public class ClassService {
             case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndCategoryId(type, categoryId);
             case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId);
             case RECENT -> yogaClassRepository.findRecentClassByTypeAndCategoryId(type, categoryId);
+            case FAVORITE -> yogaClassRepository.findMostFavoritedClassByTypeAndCategoryId(type, categoryId);
+            case EXPENSIVE -> yogaClassRepository.findMostExpensiveClassByTypeAndCategoryId(type, categoryId);
+            case CHEAP -> yogaClassRepository.findCheapestClassByTypeAndCategoryId(type, categoryId);
         };
     }
 

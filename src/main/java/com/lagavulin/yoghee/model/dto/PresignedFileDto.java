@@ -10,6 +10,6 @@ import lombok.Setter;
 @Setter
 public class PresignedFileDto {
 
-    private String bucket;
+    private String type;
     private List<PresignedFileModel> files;
 }

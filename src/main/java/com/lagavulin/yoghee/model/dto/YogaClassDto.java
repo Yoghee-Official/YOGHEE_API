@@ -14,6 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class YogaClassDto {
+
     private String classId;
     private String className;
     private String type;
@@ -24,6 +25,7 @@ public class YogaClassDto {
     private String masterName;
     private Number review;
     private Number price;
+    private Number favorite;
     private Long newMember;
     private Long capacity;
     private Number rating;
@@ -32,15 +34,16 @@ public class YogaClassDto {
     private String scheduleId;
     private String startTime;
     private String endTime;
+    private Boolean isFavorite;
 
-    public YogaClassDto(String classId, String classname, String description, String thumbnail){
+    public YogaClassDto(String classId, String classname, String description, String thumbnail) {
         this.classId = classId;
         this.className = classname;
         this.description = description;
         this.thumbnail = thumbnail;
     }
 
-    public YogaClassDto(String classId, String className, String type, String address, String scheduleId, String startTime, String endTime){
+    public YogaClassDto(String classId, String className, String type, String address, String scheduleId, String startTime, String endTime) {
         this.classId = classId;
         this.className = className;
         this.type = type;
@@ -50,17 +53,8 @@ public class YogaClassDto {
         this.endTime = endTime;
     }
 
-    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number rating, Number review) {
-        this.classId = classId;
-        this.className = className;
-        this.thumbnail = thumbnail;
-        this.masterId = masterId;
-        this.masterName = masterName;
-        this.rating = rating;
-        this.review = review;
-    }
-
-    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number price, Number rating, Number review) {
+    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number price, Number rating,
+        Number review) {
         this.classId = classId;
         this.className = className;
         this.thumbnail = thumbnail;
@@ -69,5 +63,18 @@ public class YogaClassDto {
         this.price = price;
         this.rating = rating;
         this.review = review;
+    }
+
+    public YogaClassDto(String classId, String className, String thumbnail, String masterId, String masterName, Number price, Number rating,
+        Number review, Boolean isFavorite) {
+        this.classId = classId;
+        this.className = className;
+        this.thumbnail = thumbnail;
+        this.masterId = masterId;
+        this.masterName = masterName;
+        this.price = price;
+        this.rating = rating;
+        this.review = review;
+        this.isFavorite = isFavorite;
     }
 }

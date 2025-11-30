@@ -61,8 +61,8 @@ public class MainController {
         List<YogaClassDto> todayClasses = getTodayClasses(userUuid);
         List<YogaClassDto> interestedClasses = getInterestedClasses(type, userUuid);
         List<YogaCenterDto> interestedCenters = getInterestedCenters(type, userUuid);
-        List<YogaClassDto> top10Class = getTop10Classes(type);
-        List<YogaCenterDto> top10Center = getTop10Centers(type);
+        List<YogaClassDto> top10Class = getTop10Classes(type, userUuid);
+        List<YogaCenterDto> top10Center = getTop10Centers(type, userUuid);
         List<Category> categories = categoryService.getMainDisplay(type);
 
         return ResponseUtil.success(MainApiDto.builder()
@@ -103,15 +103,15 @@ public class MainController {
         return null;
     }
 
-    private List<YogaClassDto> getTop10Classes(String type) {
+    private List<YogaClassDto> getTop10Classes(String type, String userUuid) {
         return "O".equals(type)
-            ? classService.getNewSignUpTopNClassSinceStartDate(type, 10)
+            ? classService.getNewSignUpTopNClassSinceStartDate(type, 10, userUuid)
             : null;
     }
 
-    private List<YogaCenterDto> getTop10Centers(String type) {
+    private List<YogaCenterDto> getTop10Centers(String type, String userUuid) {
         return "R".equals(type)
-            ? centerService.getNewSignUpTopNCenterSinceStartDate(type, 10)
+            ? centerService.getNewSignUpTopNCenterSinceStartDate(type, 10, userUuid)
             : null;
     }
 }
