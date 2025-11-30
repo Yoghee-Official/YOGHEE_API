@@ -3,7 +3,10 @@ package com.lagavulin.yoghee.model.enums;
 public enum ClassSortType {
     RECOMMEND("recommend", "추천순"),
     REVIEW("review", "리뷰많은순"),
-    RECENT("recent", "최신순");
+    RECENT("recent", "최신순"),
+    FAVORITE("favorite", "찜순"),
+    EXPENSIVE("expensive", "가격높은순"),
+    CHEAP("cheap", "가격낮은순");
     private final String code;
     private final String description;
 
