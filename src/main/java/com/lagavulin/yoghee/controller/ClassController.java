@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Class", description = "클래스 관련 API")
 public class ClassController {
+
     private final ClassService classService;
 
     @GetMapping("/category/{categoryId}")
@@ -80,20 +81,42 @@ public class ClassController {
         @PathVariable(name = "categoryId") String categoryId,
         @Parameter(name = "type", description = "R: Regular 정규수련, O: One day 하루수련")
         @RequestParam(name = "type") String type,
-        @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최근 등록순")
-        @RequestParam(name = "sort", required = false) String sort){
+        @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최신순, favorite : 찜순, expensive : 가격높은순, cheap : 가격낮은순")
+        @RequestParam(name = "sort", required = false) String sort) {
         return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort)));
     }
 
     @PostMapping("/favorite/")
-    @Operation(summary = "클래스찜 API", description = "유저 JWT 토큰을 통해 요가 클래스 찜")
+    @Operation(
+        summary = "클래스찜 API",
+        description = "유저 JWT 토큰을 통해 요가 클래스 찜, 이미 추가된 클래스일 경우 취소",
+        parameters = {
+            @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰"),
+            @Parameter(name = "classId", description = "Class ID", example = "655-ba-353dc-97a12")
+        },
+        responses =
+            {
+                @ApiResponse(
+                    responseCode = "200", description = "클래스 찜 처리 완료",
+                    content = @Content(mediaType = "application/json",
+                        schema = @Schema(example =
+                            """
+                                    {
+                                        "code": 200,
+                                        "status": "success",
+                                        "data": "클래스 찜 처리 완료 655-ba-353dc-97a12"
+                                    }
+                                """
+                        )
+                    )
+                )
+            })
     public ResponseEntity<?> favoriteClass(
         @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
-        @Parameter(name = "classId", description = "Class ID")
-        @RequestBody String classId){
+        @Parameter(name = "classId", description = "Class ID") @RequestBody String classId) {
         String userUuid = principal.getName();
         classService.addFavoriteClass(userUuid, classId);
 
-        return ResponseUtil.success("Successfully added favorite class " + classId);
+        return ResponseUtil.success("클래스 찜 처리 완료 " + classId);
     }
 }
