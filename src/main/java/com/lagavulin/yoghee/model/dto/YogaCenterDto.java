@@ -12,9 +12,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class YogaCenterDto {
+
     private String centerId;
     private String address;
     private String name;
     private String thumbnail;
     private Number favoriteCount;
+    private Boolean isFavorite;
 }
