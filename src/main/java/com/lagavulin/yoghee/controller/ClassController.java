@@ -2,11 +2,13 @@ package com.lagavulin.yoghee.controller;
 
 import java.security.Principal;
 
+import com.lagavulin.yoghee.model.dto.CategoryClassDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
 import com.lagavulin.yoghee.service.ClassService;
 import com.lagavulin.yoghee.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,43 +36,12 @@ public class ClassController {
     @GetMapping("/category/{categoryId}")
     @Operation(summary = "카테고리 클래스 조회 API", description = "카테고리마다 존재하는 클래스 조회 API",
         responses = {
-            @ApiResponse(responseCode = "200", description = "로그인 비로그인",
+            @ApiResponse(
+                responseCode = "200",
+                description = "카테고리 클래스 조회 성공",
                 content = @Content(mediaType = "application/json",
-                    schema = @Schema(example =
-                        """
-                            {
-                                "code": 200,
-                                "status": "success",
-                                "data": {
-                                    "categoryId": 3,
-                                    "categoryName": "힐링",
-                                    "classes": [
-                                        {
-                                            "classId": "d1594-49853",
-                                            "className": "정환이와 아침요가를",
-                                            "address": "춘천시 퇴계로 168, 207동 904호",
-                                            "thumbnail": "https://yoghee.s3.ap-northeast-2.amazonaws.com/class/d1594-49853/thumbnail.jpg",
-                                            "masterId" : "m1594-49853",
-                                            "masterName" : "김정환",
-                                            "rating": 4.5,
-                                            "review": 20,
-                                            "price": 15000
-                                        },
-                                        {
-                                            "classId": "d1594-49852",
-                                            "className": "김원장과 요가를",
-                                            "address": "춘천시 퇴계로 168, 207동 904호",
-                                            "thumbnail": "https://yoghee.s3.ap-northeast-2.amazonaws.com/class/d1594-49853/thumbnail.jpg",
-                                            "masterId" : "m1594-49852",
-                                            "masterName" : "김원장",
-                                            "rating": 8.9,
-                                            "review": 11,
-                                            "price": 15000
-                                        }
-                                    ]
-                                }
-                            }
-                            """
+                    array = @ArraySchema(
+                        schema = @Schema(implementation = CategoryClassDto.class)
                     )
                 )
             )

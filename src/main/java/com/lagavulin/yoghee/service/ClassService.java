@@ -10,6 +10,7 @@ import java.util.Set;
 import com.lagavulin.yoghee.entity.UserCategory;
 import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaClass;
+import com.lagavulin.yoghee.model.dto.CategoryClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaReviewDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
@@ -95,7 +96,7 @@ public class ClassService {
 
     }
 
-    public List<YogaClassDto> getCategoryClasses(String type, String categoryId, ClassSortType classSortType) {
+    public List<CategoryClassDto> getCategoryClasses(String type, String categoryId, ClassSortType classSortType) {
         return switch (classSortType) {
             case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndCategoryId(type, categoryId);
             case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId);

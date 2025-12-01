@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.lagavulin.yoghee.entity.YogaClass;
+import com.lagavulin.yoghee.model.dto.CategoryClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -82,8 +83,8 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
      * 가장 참여자가 많은 클래스
      */
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             LEFT JOIN YogaClassMember m ON c.classId = m.classId
@@ -94,14 +95,14 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY COUNT(DISTINCT m.userUuid) DESC
         """)
-    List<YogaClassDto> findMostJoinedClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findMostJoinedClassByTypeAndCategoryId(String type, String categoryId);
 
     /**
      * 리뷰 평점이 높은 클래스
      */
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
@@ -111,14 +112,14 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.classId
             ORDER BY COALESCE(AVG(r.rating), 0.0) DESC
         """)
-    List<YogaClassDto> findHighestRatedClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findHighestRatedClassByTypeAndCategoryId(String type, String categoryId);
 
     /**
      * 최근에 생긴 클래스
      */
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
@@ -128,7 +129,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.classId
             ORDER BY c.createdAt DESC
         """)
-    List<YogaClassDto> findRecentClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findRecentClassByTypeAndCategoryId(String type, String categoryId);
 
     @Query("""
         SELECT c.classId
@@ -141,8 +142,8 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
     List<String> findTopClickedClasses(String type, @Param("fromDate") LocalDate fromDate, Pageable pageable);
 
     @Query("""
-        SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                      c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+        SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                      c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
         FROM YogaClass c
         JOIN YogaClassCategory yc ON c.classId = yc.classId
         INNER JOIN AppUser u ON c.masterId = u.uuid
@@ -152,11 +153,11 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
         GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
         ORDER BY COUNT(DISTINCT uf.userUuid) DESC
         """)
-    List<YogaClassDto> findMostFavoritedClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findMostFavoritedClassByTypeAndCategoryId(String type, String categoryId);
 
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
@@ -165,11 +166,11 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price DESC
         """)
-    List<YogaClassDto> findMostExpensiveClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findMostExpensiveClassByTypeAndCategoryId(String type, String categoryId);
 
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId))
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
@@ -178,5 +179,5 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price ASC
         """)
-    List<YogaClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId);
 }
