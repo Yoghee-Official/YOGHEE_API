@@ -54,7 +54,9 @@ public class ClassController {
         @RequestParam(name = "type") String type,
         @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최신순, favorite : 찜순, expensive : 가격높은순, cheap : 가격낮은순")
         @RequestParam(name = "sort", required = false) String sort) {
-        return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort)));
+        String userUuid = principal != null ? principal.getName() : null;
+        // TODO 주소 동까지 나오도록 수정 필요함
+        return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort), userUuid));
     }
 
     @PostMapping("/favorite/")
