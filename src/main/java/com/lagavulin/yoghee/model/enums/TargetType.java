@@ -3,13 +3,13 @@ package com.lagavulin.yoghee.model.enums;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
 
-public enum FavoriteTarget {
-    YOGA_CLASS("CLASS"),
-    YOGA_CENTER("CENTER");
+public enum TargetType {
+    CLASS("CLASS"),
+    CENTER("CENTER");
 
     private final String type;
 
-    FavoriteTarget(String type) {
+    TargetType(String type) {
         this.type = type;
     }
 
@@ -17,8 +17,8 @@ public enum FavoriteTarget {
         return type;
     }
 
-    public static FavoriteTarget fromType(String type) {
-        for (FavoriteTarget target : FavoriteTarget.values()) {
+    public static TargetType fromType(String type) {
+        for (TargetType target : TargetType.values()) {
             if (target.getType().equals(type)) {
                 return target;
             }
