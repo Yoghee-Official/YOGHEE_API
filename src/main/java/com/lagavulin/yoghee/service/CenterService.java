@@ -13,6 +13,7 @@ import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaCenter;
 import com.lagavulin.yoghee.entity.YogaCenterAddress;
 import com.lagavulin.yoghee.model.dto.YogaCenterDto;
+import com.lagavulin.yoghee.model.enums.TargetType;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
 import com.lagavulin.yoghee.repository.UserFavoriteRepository;
 import com.lagavulin.yoghee.repository.YogaCenterAddressRepository;
@@ -72,7 +73,7 @@ public class CenterService {
         } else {
             userFavoriteRepository.save(UserFavorite.builder()
                                                     .id(centerId)
-                                                    .type("CENTER")
+                                                    .type(TargetType.CENTER)
                                                     .userUuid(userUuid)
                                                     .createdAt(new Date())
                                                     .build());
