@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
+
     private static final String SECURITY_SCHEME_NAME = "BEARER_AUTH";
 
     @Value("${yoghee.domain}")
@@ -22,17 +23,17 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI().info(new Info().title("Project Yoghee API")
-                                            .version("0.0.1")
-                                            .description("API Description"))
-            .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
-            .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,
-                new SecurityScheme()
-                    .name(SECURITY_SCHEME_NAME)
-                    .type(SecurityScheme.Type.HTTP)
-                    .scheme("bearer")
-                    .bearerFormat("JWT")
-                )
-            )
-            .servers(List.of(new Server().url(domain)));
+                                            .version("0.1.2")
+                                            .description("251216"))
+                            .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                            .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,
+                                    new SecurityScheme()
+                                        .name(SECURITY_SCHEME_NAME)
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                )
+                            )
+                            .servers(List.of(new Server().url(domain)));
     }
 }
