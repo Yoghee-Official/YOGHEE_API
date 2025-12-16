@@ -25,6 +25,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @Entity
 @Table(name = "APP_USER")
 public class AppUser {
+
     @Id
     @Column(name = "USER_UUID")
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
@@ -34,6 +35,10 @@ public class AppUser {
     private String userId;
     private String name;
     private String nickname;
+
+
+    @Column(name = "PROFILE_URL")
+    private String profileUrl;
 
     @Column(name = "PHONE_NO")
     private String phoneNo;
