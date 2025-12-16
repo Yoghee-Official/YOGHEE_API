@@ -7,6 +7,8 @@ import java.util.List;
 
 import com.lagavulin.yoghee.entity.YogaClass;
 import com.lagavulin.yoghee.model.dto.CategoryClassDto;
+import com.lagavulin.yoghee.model.dto.FavoriteOneDayClassDto;
+import com.lagavulin.yoghee.model.dto.FavoriteRegularClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -61,10 +63,21 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, COALESCE(c.price, 0), ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), CASE WHEN uf.userUuid IS NOT NULL THEN true ELSE false END)
+                c.classId,
+                c.name,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                COALESCE(c.price, 0),
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                CASE WHEN uf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
-            LEFT JOIN UserFavorite uf ON uf.id = c.classId AND uf.type = 'CLASS' AND (:userUuid IS NULL OR uf.userUuid = :userUuid)
+            LEFT JOIN UserFavorite uf ON uf.id = c.classId
+                    AND uf.type = 'CLASS'
+                    AND uf.userUuid = :userUuid
             LEFT JOIN AppUser u ON c.masterId = u.uuid
             WHERE c.classId IN :classIds
             GROUP BY c.classId
@@ -84,52 +97,102 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
      */
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             LEFT JOIN YogaClassMember m ON c.classId = m.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY COUNT(DISTINCT m.userUuid) DESC
         """)
-    List<CategoryClassDto> findMostJoinedClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findMostJoinedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
 
     /**
      * 리뷰 평점이 높은 클래스
      */
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            LEFT JOIN Image i ON c.classId = i.targetId
+                    AND i.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
             GROUP BY c.classId
             ORDER BY COALESCE(AVG(r.rating), 0.0) DESC
         """)
-    List<CategoryClassDto> findHighestRatedClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findHighestRatedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
 
     /**
      * 최근에 생긴 클래스
      */
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
             GROUP BY c.classId
             ORDER BY c.createdAt DESC
         """)
-    List<CategoryClassDto> findRecentClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findRecentClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
 
     @Query("""
         SELECT c.classId
@@ -141,43 +204,130 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
         """)
     List<String> findTopClickedClasses(String type, @Param("fromDate") LocalDate fromDate, Pageable pageable);
 
-    @Query("""
-        SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                      c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
-        FROM YogaClass c
-        JOIN YogaClassCategory yc ON c.classId = yc.classId
-        INNER JOIN AppUser u ON c.masterId = u.uuid
-        LEFT JOIN YogaClassReview r ON c.classId = r.classId
-        LEFT JOIN UserFavorite uf ON c.classId = uf.id AND uf.type = 'CLASS'
-        WHERE yc.categoryId = :categoryId AND c.type = :type
-        GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
-        ORDER BY COUNT(DISTINCT uf.userUuid) DESC
-        """)
-    List<CategoryClassDto> findMostFavoritedClassByTypeAndCategoryId(String type, String categoryId);
-
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE yc.categoryId = :categoryId AND c.type = :type
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COUNT(DISTINCT alluf.userUuid) DESC
+        """)
+    List<CategoryClassDto> findMostFavoritedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
+
+    @Query(value = """
+             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            JOIN YogaClassCategory yc ON c.classId = yc.classId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId AND c.type = :type
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price DESC
         """)
-    List<CategoryClassDto> findMostExpensiveClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findMostExpensiveClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
-                c.classId, c.name, c.thumbnail, c.masterId, u.nickname, ROUND(COALESCE(AVG(r.rating), 0.0),2), COUNT(DISTINCT r.reviewId), COALESCE(c.price, 0))
+                c.classId,
+                c.name,
+                c.address,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId AND c.type = :type
             GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price ASC
         """)
-    List<CategoryClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId);
+    List<CategoryClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
+
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.FavoriteOneDayClassDto(
+                c.classId,
+                c.name,
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                COUNT(DISTINCT r.reviewId),
+                ROUND(COALESCE(AVG(r.rating), 0.0),2)
+            )
+            FROM YogaClass c
+            INNER JOIN UserFavorite uf ON c.classId = uf.id AND uf.type = 'CLASS'
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            WHERE uf.userUuid = :userUuid
+              AND uf.type = 'CLASS'
+              AND c.type = 'O'
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname
+        """)
+    List<FavoriteOneDayClassDto> findUserFavoriteOneDayClasses(String userUuid);
+
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.FavoriteRegularClassDto(
+                c.classId,
+                c.name,
+                c.thumbnail,
+                c.address,
+                COUNT(DISTINCT alluf.userUuid)
+            )
+            FROM YogaClass c
+            INNER JOIN UserFavorite uf ON c.classId = uf.id AND uf.type = 'CLASS'
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                AND alluf.type = 'CLASS'
+            WHERE uf.userUuid = :userUuid
+              AND uf.type = 'CLASS'
+              AND c.type = 'R'
+            GROUP BY c.classId, c.name, c.thumbnail, c.address
+        """)
+    List<FavoriteRegularClassDto> findUserFavoriteRegularClasses(String userUuid);
 }
