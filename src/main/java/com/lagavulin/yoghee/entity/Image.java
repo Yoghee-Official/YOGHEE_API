@@ -1,19 +1,15 @@
 package com.lagavulin.yoghee.entity;
 
-import java.io.Serializable;
-import java.util.Date;
-
 import com.lagavulin.yoghee.model.enums.TargetType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,33 +18,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "USER_FAVORITE")
-@IdClass(UserFavorite.PK.class)
-public class UserFavorite {
+@Table(name = "IMAGE")
+public class Image {
 
     @Id
-    @Column(name = "ID")
-    private String id;
+    @Column(name = "IMAGE_UUID")
+    @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
+    private String imageUuid;
 
-    @Id
     @Column(name = "TYPE")
     @Enumerated(EnumType.STRING)
     private TargetType type; // CENTER, CLASS
 
-    @Id
-    @Column(name = "USER_UUID")
-    private String userUuid;
+    @Column(name = "TARGET_ID")
+    private String targetId;
 
-    @Column(name = "CREATED_AT")
-    private Date createdAt;
+    @Column(name = "URL")
+    private String url;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PK implements Serializable {
-
-        private String id;
-        private String type;
-        private String userUuid;
-    }
+    @Column(name = "ORDER_NO")
+    private Integer orderNo;
 }

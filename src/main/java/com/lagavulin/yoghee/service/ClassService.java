@@ -3,10 +3,14 @@ package com.lagavulin.yoghee.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.lagavulin.yoghee.entity.Image;
 import com.lagavulin.yoghee.entity.UserCategory;
 import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaClass;
@@ -14,6 +18,8 @@ import com.lagavulin.yoghee.model.dto.CategoryClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaReviewDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
+import com.lagavulin.yoghee.model.enums.TargetType;
+import com.lagavulin.yoghee.repository.ImageRepository;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
 import com.lagavulin.yoghee.repository.UserFavoriteRepository;
 import com.lagavulin.yoghee.repository.YogaClassRepository;
@@ -30,6 +36,7 @@ public class ClassService {
     private final UserCategoryRepository userCategoryRepository;
     private final YogaClassReviewRepository yogaClassReviewRepository;
     private final UserFavoriteRepository userFavoriteRepository;
+    private final ImageRepository imageRepository;
 
     /**
      * 오늘 스케줄 조회 <br> /api/main/ - [로그인] data.todaySchedule
@@ -96,21 +103,55 @@ public class ClassService {
 
     }
 
-    public List<CategoryClassDto> getCategoryClasses(String type, String categoryId, ClassSortType classSortType) {
-        return switch (classSortType) {
-            case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndCategoryId(type, categoryId);
-            case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId);
-            case RECENT -> yogaClassRepository.findRecentClassByTypeAndCategoryId(type, categoryId);
-            case FAVORITE -> yogaClassRepository.findMostFavoritedClassByTypeAndCategoryId(type, categoryId);
-            case EXPENSIVE -> yogaClassRepository.findMostExpensiveClassByTypeAndCategoryId(type, categoryId);
-            case CHEAP -> yogaClassRepository.findCheapestClassByTypeAndCategoryId(type, categoryId);
+    public List<CategoryClassDto> getCategoryClasses(String type, String categoryId, ClassSortType classSortType, String userUuid) {
+        List<CategoryClassDto> dtos = switch (classSortType) {
+            case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndCategoryId(type, categoryId, userUuid);
+            case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndCategoryId(type, categoryId, userUuid);
+            case RECENT -> yogaClassRepository.findRecentClassByTypeAndCategoryId(type, categoryId, userUuid);
+            case FAVORITE -> yogaClassRepository.findMostFavoritedClassByTypeAndCategoryId(type, categoryId, userUuid);
+            case EXPENSIVE -> yogaClassRepository.findMostExpensiveClassByTypeAndCategoryId(type, categoryId, userUuid);
+            case CHEAP -> yogaClassRepository.findCheapestClassByTypeAndCategoryId(type, categoryId, userUuid);
         };
+
+        if (dtos == null || dtos.isEmpty()) {
+            return dtos;
+        }
+
+        // 클래스 ID 추출
+        List<String> classIds = dtos.stream().map(CategoryClassDto::getClassId).collect(Collectors.toList());
+
+        // 이미지 조회 (한 번에 여러 타겟 id로 조회)
+        List<Image> images = imageRepository.findByTypeAndTargetIdInOrderByTargetIdAscOrderNoAsc(TargetType.CLASS, classIds);
+
+        // 클래스Id -> List<url> 매핑
+        Map<String, List<String>> imageMap = new HashMap<>();
+        for (Image img : images) {
+            List<String> list = imageMap.computeIfAbsent(img.getTargetId(), k -> new java.util.ArrayList<>());
+            // 최대 5개까지만 수집
+            if (list.size() < 5) {
+                list.add(img.getUrl());
+            }
+        }
+
+        // DTO에 images 채우기 (이미지 없으면 기존 썸네일을 단일 이미지로 사용)
+        for (CategoryClassDto dto : dtos) {
+            List<String> imgs = imageMap.get(dto.getClassId());
+            if (imgs == null || imgs.isEmpty()) {
+                // CategoryClassDto의 생성자는 thumbnail(단일 이미지)로 받아 List로 변환하도록 되어 있음
+                // DTO에는 이미 thumbnail로 초기화 되어 있을 수 있으므로 그대로 두거나 빈 리스트로 설정
+                dto.setImages(List.of());
+            } else {
+                dto.setImages(imgs);
+            }
+        }
+
+        return dtos;
     }
 
     public void addFavoriteClass(String userUuid, String classId) {
         userFavoriteRepository.save(UserFavorite.builder()
                                                 .id(classId)
-                                                .type("CLASS")
+                                                .type(TargetType.CLASS)
                                                 .userUuid(userUuid)
                                                 .createdAt(new Date())
                                                 .build());
