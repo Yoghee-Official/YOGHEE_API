@@ -18,6 +18,9 @@ public class CategoryClassDto {
     @Schema(description = "클래스명", example = "정환이와 함께하는 요가 클래스")
     private String className;
 
+    @Schema(description = "요가원 주소", example = "서울 영등포구 당산동")
+    private String address;
+
     @Schema(description = "요가원 등록 이미지 URL list", example = "[\"https://image1_url\", \"https://image2_url\"] ")
     private List<String> images;
 
@@ -36,15 +39,24 @@ public class CategoryClassDto {
     @Schema(description = "요가 클래스 가격", example = "15000")
     private Number price;
 
-    public CategoryClassDto(String classId, String className, String image, String masterId, String masterName, Number rating, Number review,
-        Number price) {
+    @Schema(description = "찜 수", example = "15000")
+    private Number favoriteCount;
+
+    @Schema(description = "찜 여부", example = "true")
+    Boolean isFavorite;
+
+    public CategoryClassDto(String classId, String className, String address, String image, String masterId, String masterName, Number rating,
+        Number review, Number price, Number favoriteCount, Boolean isFavorite) {
         this.classId = classId;
         this.className = className;
+        this.address = address;
         this.images = List.of(image);
         this.masterId = masterId;
         this.masterName = masterName;
         this.rating = rating;
         this.review = review;
         this.price = price;
+        this.favoriteCount = favoriteCount;
+        this.isFavorite = isFavorite;
     }
 }
