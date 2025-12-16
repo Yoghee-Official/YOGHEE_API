@@ -3,8 +3,11 @@ package com.lagavulin.yoghee.entity;
 import java.io.Serializable;
 import java.util.Date;
 
+import com.lagavulin.yoghee.model.enums.TargetType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
@@ -19,16 +22,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "FAVORITE")
+@Table(name = "USER_FAVORITE")
 @IdClass(UserFavorite.PK.class)
 public class UserFavorite {
+
     @Id
     @Column(name = "ID")
     private String id;
 
     @Id
     @Column(name = "TYPE")
-    private String type; // CENTER, CLASS
+    @Enumerated(EnumType.STRING)
+    private TargetType type; // CENTER, CLASS
 
     @Id
     @Column(name = "USER_UUID")
@@ -41,6 +46,7 @@ public class UserFavorite {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PK implements Serializable {
+
         private String id;
         private String type;
         private String userUuid;
