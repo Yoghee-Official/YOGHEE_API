@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "CLASS_CATEGORY")
+@Table(name = "CENTER_CATEGORY")
 @IdClass(YogaCenterCategory.PK.class)
 public class YogaCenterCategory {
 
@@ -34,6 +34,7 @@ public class YogaCenterCategory {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PK implements Serializable {
+
         private String centerId;
         private String categoryId;
     }

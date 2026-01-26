@@ -1,5 +1,6 @@
 package com.lagavulin.yoghee.entity;
 
+import java.time.LocalTime;
 import java.util.Date;
 
 import jakarta.persistence.Column;
@@ -19,6 +20,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "CLASS_SCHEDULE")
 public class YogaClassSchedule {
+
     @Id
     @Column(name = "SCHEDULE_ID")
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
@@ -34,10 +36,10 @@ public class YogaClassSchedule {
     private Date specificDate;
 
     @Column(name = "START_TIME")
-    private String startTime;
+    private LocalTime startTime;
 
     @Column(name = "END_TIME")
-    private String endTime;
+    private LocalTime endTime;
 
     @Column(name = "CONTENT")
     private String content;

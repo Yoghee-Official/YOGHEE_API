@@ -6,7 +6,8 @@ import com.lagavulin.yoghee.exception.ErrorCode;
 public enum SsoType {
     KAKAO("KAKAO", "k"),
     APPLE("APPLE", "a"),
-    GOOGLE("GOOGLE", "g");
+    GOOGLE("GOOGLE", "g"),
+    NAVER("NAVER", "n");
 
     private final String vendor;
     private final String ssoCode;
@@ -24,7 +25,7 @@ public enum SsoType {
         return ssoCode;
     }
 
-    public static SsoType fromSsoCode(String ssoCode){
+    public static SsoType fromSsoCode(String ssoCode) {
         for (SsoType type : SsoType.values()) {
             if (type.getSsoCode().equals(ssoCode)) {
                 return type;

@@ -1,8 +1,10 @@
 package com.lagavulin.yoghee.model.dto;
 
-import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,11 +21,12 @@ public class YogaClassScheduleDto {
     @Schema(description = "클래스명", example = "정환이와 함께하는 요가 클래스")
     private String className;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     @Schema(description = "일자", example = "2025-05-28")
     private Date day;
 
     @Schema(description = "요일", example = "0(일요일), 1(월요일) ... 6(토요일)")
-    private Integer dayOfWeek;
+    private Long dayOfWeek;
 
     @Schema(description = "클래스 등록 이미지 URL", example = "https://image1_url")
     private String thumbnailUrl;
@@ -34,8 +37,13 @@ public class YogaClassScheduleDto {
     @Schema(description = "참석 인원 수", example = "23")
     private Long attendance;
 
-    // constructor for java.sql.Timestamp + wrapper types
-    public YogaClassScheduleDto(String classId, String className, Timestamp day, Integer dayOfWeek,
+    @Schema(description = "지난 날짜 여부", example = "true / false")
+    private Boolean isPast;
+
+    @Schema(description = "카테고리 목록", example = "[\"빈야사\", \"하타\"]")
+    private List<String> categories;
+
+    public YogaClassScheduleDto(String classId, String className, Date day, Long dayOfWeek,
         String thumbnailUrl, String address, Long attendance) {
         this.classId = classId;
         this.className = className;
@@ -44,23 +52,11 @@ public class YogaClassScheduleDto {
         this.thumbnailUrl = thumbnailUrl;
         this.address = address;
         this.attendance = attendance;
+        this.isPast = day.before(new Date());
     }
 
-    // primitive variant for Timestamp
-    public YogaClassScheduleDto(String classId, String className, Timestamp day, int dayOfWeek,
-        String thumbnailUrl, String address, long attendance) {
-        this.classId = classId;
-        this.className = className;
-        this.day = day;
-        this.dayOfWeek = Integer.valueOf(dayOfWeek);
-        this.thumbnailUrl = thumbnailUrl;
-        this.address = address;
-        this.attendance = Long.valueOf(attendance);
-    }
-
-    // constructor for java.util.Date + wrapper types
-    public YogaClassScheduleDto(String classId, String className, Date day, Integer dayOfWeek,
-        String thumbnailUrl, String address, Long attendance) {
+    public YogaClassScheduleDto(String classId, String className, Date day, Long dayOfWeek,
+        String thumbnailUrl, String address, Long attendance, String categoriesStr) {
         this.classId = classId;
         this.className = className;
         this.day = day;
@@ -68,17 +64,9 @@ public class YogaClassScheduleDto {
         this.thumbnailUrl = thumbnailUrl;
         this.address = address;
         this.attendance = attendance;
-    }
-
-    // primitive variant for Date
-    public YogaClassScheduleDto(String classId, String className, Date day, int dayOfWeek,
-        String thumbnailUrl, String address, long attendance) {
-        this.classId = classId;
-        this.className = className;
-        this.day = day;
-        this.dayOfWeek = Integer.valueOf(dayOfWeek);
-        this.thumbnailUrl = thumbnailUrl;
-        this.address = address;
-        this.attendance = Long.valueOf(attendance);
+        this.isPast = day.before(new Date());
+        this.categories = (categoriesStr != null && !categoriesStr.isEmpty())
+            ? Arrays.asList(categoriesStr.split(", "))
+            : List.of();
     }
 }

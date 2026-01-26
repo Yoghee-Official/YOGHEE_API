@@ -7,8 +7,6 @@ import java.util.List;
 
 import com.lagavulin.yoghee.entity.YogaClass;
 import com.lagavulin.yoghee.model.dto.CategoryClassDto;
-import com.lagavulin.yoghee.model.dto.FavoriteOneDayClassDto;
-import com.lagavulin.yoghee.model.dto.FavoriteRegularClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -292,42 +290,47 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
     List<CategoryClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
 
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.FavoriteOneDayClassDto(
-                c.classId,
-                c.name,
-                c.thumbnail,
-                c.masterId,
-                u.nickname,
-                COUNT(DISTINCT r.reviewId),
-                ROUND(COALESCE(AVG(r.rating), 0.0),2)
-            )
-            FROM YogaClass c
-            INNER JOIN UserFavorite uf ON c.classId = uf.id AND uf.type = 'CLASS'
-            INNER JOIN AppUser u ON c.masterId = u.uuid
-            LEFT JOIN YogaClassReview r ON c.classId = r.classId
-            WHERE uf.userUuid = :userUuid
-              AND uf.type = 'CLASS'
-              AND c.type = 'O'
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname
-        """)
-    List<FavoriteOneDayClassDto> findUserFavoriteOneDayClasses(String userUuid);
+            SELECT
+                c.CLASS_ID,
+                c.NAME,
+                c.THUMBNAIL,
+                c.MASTER_ID,
+                u.NICKNAME,
+                NULL,
+                ROUND(COALESCE(AVG(r.RATING), 0.0), 2),
+                COUNT(DISTINCT r.REVIEW_ID),
+                (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
+                 FROM CLASS_CATEGORY cc
+                 JOIN CATEGORY cat ON cc.CATEGORY_ID = cat.CATEGORY_ID
+                 WHERE cc.CLASS_ID = c.CLASS_ID)
+            FROM CLASS c
+            INNER JOIN APP_USER u ON c.MASTER_ID = u.USER_UUID
+            INNER JOIN USER_FAVORITE uf ON c.CLASS_ID = uf.ID AND uf.TYPE = 'CLASS'
+            LEFT JOIN CLASS_REVIEW r ON c.CLASS_ID = r.CLASS_ID
+            WHERE uf.USER_UUID = :userUuid
+              AND uf.TYPE = 'CLASS'
+            GROUP BY c.CLASS_ID, c.NAME, c.THUMBNAIL, c.MASTER_ID, u.NICKNAME
+        """, nativeQuery = true)
+    List<Object[]> findUserFavoriteClassesRaw(String userUuid);
 
     @Query(value = """
-            SELECT new com.lagavulin.yoghee.model.dto.FavoriteRegularClassDto(
-                c.classId,
-                c.name,
-                c.thumbnail,
-                c.address,
-                COUNT(DISTINCT alluf.userUuid)
-            )
-            FROM YogaClass c
-            INNER JOIN UserFavorite uf ON c.classId = uf.id AND uf.type = 'CLASS'
-            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
-                AND alluf.type = 'CLASS'
-            WHERE uf.userUuid = :userUuid
-              AND uf.type = 'CLASS'
-              AND c.type = 'R'
-            GROUP BY c.classId, c.name, c.thumbnail, c.address
-        """)
-    List<FavoriteRegularClassDto> findUserFavoriteRegularClasses(String userUuid);
+            SELECT
+                c.CLASS_ID,
+                c.NAME,
+                c.THUMBNAIL,
+                c.ADDRESS,
+                COUNT(DISTINCT alluf.USER_UUID),
+                (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
+                 FROM CLASS_CATEGORY cc
+                 JOIN CATEGORY cat ON cc.CATEGORY_ID = cat.CATEGORY_ID
+                 WHERE cc.CLASS_ID = c.CLASS_ID)
+            FROM CLASS c
+            INNER JOIN USER_FAVORITE uf ON c.CLASS_ID = uf.ID AND uf.TYPE = 'CLASS'
+            LEFT JOIN USER_FAVORITE alluf ON alluf.ID = c.CLASS_ID AND alluf.TYPE = 'CLASS'
+            WHERE uf.USER_UUID = :userUuid
+              AND uf.TYPE = 'CLASS'
+              AND c.TYPE = 'R'
+            GROUP BY c.CLASS_ID, c.NAME, c.THUMBNAIL, c.ADDRESS
+        """, nativeQuery = true)
+    List<Object[]> findUserFavoriteRegularClassesRaw(String userUuid);
 }

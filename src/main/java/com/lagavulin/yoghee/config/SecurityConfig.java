@@ -52,7 +52,9 @@ public class SecurityConfig {
                 sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/actuator/health", "/api/**").permitAll()
+                .requestMatchers("/images/**", "/css/**", "/js/**", "/favicon.ico").permitAll()
+                .requestMatchers("/auth/**", "/actuator/health", "/api/**", "/sso/**", "/admin/license/**")
+                .permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

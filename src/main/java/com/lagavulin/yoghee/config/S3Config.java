@@ -20,13 +20,14 @@ public class S3Config {
 
     @Value("${ncloud.secretKey}")
     private String secretKey;
+
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()
                        .region(Region.AP_NORTHEAST_2)
                        .endpointOverride(URI.create("https://kr.object.ncloudstorage.com"))
                        .credentialsProvider(
-                           StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey,secretKey)))
+                           StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                        .serviceConfiguration(
                            S3Configuration.builder()
                                           .pathStyleAccessEnabled(true)
@@ -40,7 +41,11 @@ public class S3Config {
                           .region(Region.AP_NORTHEAST_2)
                           .endpointOverride(URI.create("https://kr.object.ncloudstorage.com"))
                           .credentialsProvider(
-                              StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey,secretKey)))
+                              StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                          .serviceConfiguration(
+                              S3Configuration.builder()
+                                             .pathStyleAccessEnabled(true)
+                                             .build())
                           .build();
     }
 }

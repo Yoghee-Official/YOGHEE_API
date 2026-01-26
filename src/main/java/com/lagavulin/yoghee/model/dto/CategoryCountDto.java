@@ -8,7 +8,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class CategoryCountDto {
 
-    private String categoryId;
     private String categoryName;
     private Long count;
 }

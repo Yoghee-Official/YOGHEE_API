@@ -1,6 +1,7 @@
 package com.lagavulin.yoghee.service;
 
 
+import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,18 +18,23 @@ import com.lagavulin.yoghee.entity.UserLicense;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.dto.CategoryCountDto;
-import com.lagavulin.yoghee.model.dto.FavoriteOneDayClassDto;
-import com.lagavulin.yoghee.model.dto.FavoriteRegularClassDto;
 import com.lagavulin.yoghee.model.dto.MyPageDto;
+import com.lagavulin.yoghee.model.dto.UserProfileDto;
+import com.lagavulin.yoghee.model.dto.YogaCenterDto;
+import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaClassScheduleDto;
 import com.lagavulin.yoghee.model.enums.AttendanceStatus;
 import com.lagavulin.yoghee.repository.AppUserRepository;
 import com.lagavulin.yoghee.repository.LicenseRepository;
 import com.lagavulin.yoghee.repository.UserClassScheduleRepository;
+import com.lagavulin.yoghee.repository.YogaCenterRepository;
 import com.lagavulin.yoghee.repository.YogaClassRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MyPageService {
@@ -37,23 +43,95 @@ public class MyPageService {
     private final LicenseRepository licenseRepository;
     private final YogaClassRepository yogaClassRepository;
     private final UserClassScheduleRepository userClassScheduleRepository;
+    private final YogaCenterRepository yogaCenterRepository;
+    private final ImageService imageService;
+    private final EmailService emailService;
     private static final int GRADE_SIZE = 7 * 180;
     private static final int LEVEL_SIZE = 180;
 
-    public void saveUserLicense(String userUuid, String imageUrl) {
+    /**
+     * 자격증 이미지 등록 1. imageKey(objectKey)로 파일을 Public Read로 설정 2. Public URL 생성 3. UserLicense에 저장 4. 관리자에게 승인 요청 이메일 발송
+     *
+     * @param userUuid 사용자 UUID
+     * @param imageKey Presign API에서 받은 imageKey (예: license/images/xxx.jpg)
+     * @return 생성된 Public URL
+     */
+    public String saveUserLicense(String userUuid, String imageKey) {
         if (userUuid == null || userUuid.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "사용자 계정 정보를 알 수 없습니다.");
         }
 
-        if (imageUrl == null || !imageUrl.contains("/license")) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "이미지 URL이 유효하지 않습니다.");
+        if (imageKey == null || imageKey.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "이미지 키가 유효하지 않습니다.");
         }
 
-        licenseRepository.save(UserLicense.builder()
-                                          .userUuid(userUuid)
-                                          .imageUrl(imageUrl)
-                                          .status("U")
-                                          .build());
+        // license 타입 검증
+        if (!imageKey.startsWith("license/")) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "자격증 이미지 경로가 아닙니다.");
+        }
+
+        // 사용자 정보 조회
+        AppUser user = appUserRepository.findById(userUuid)
+                                        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 파일을 Public Read로 설정
+        imageService.makeFilePublic(imageKey);
+
+        // Public URL 생성
+        String imageUrl = imageService.getPublicUrl(imageKey);
+
+        // 자격증 저장
+        UserLicense license = licenseRepository.save(UserLicense.builder()
+                                                                .userUuid(userUuid)
+                                                                .imageUrl(imageUrl)
+                                                                .status("U") // Uploaded
+                                                                .build());
+
+        // 관리자에게 승인 요청 이메일 발송
+        try {
+            emailService.sendLicenseApprovalRequestToAdmin(license, user);
+        } catch (Exception e) {
+            log.error("관리자 이메일 발송 실패: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "자격증 승인 요청 이메일 발송에 실패했습니다.");
+        }
+
+        return imageUrl;
+    }
+
+    /**
+     * 프로필 이미지 변경 1. imageKey(objectKey)로 파일을 Public Read로 설정 2. Public URL 생성 3. AppUser의 profileUrl 업데이트
+     *
+     * @param userUuid 사용자 UUID
+     * @param imageKey Presign API에서 받은 imageKey (예: profile/images/xxx.jpg)
+     * @return 생성된 Public URL
+     */
+    public String updateProfileImage(String userUuid, String imageKey) {
+        if (userUuid == null || userUuid.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "사용자 계정 정보를 알 수 없습니다.");
+        }
+
+        if (imageKey == null || imageKey.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "이미지 키가 유효하지 않습니다.");
+        }
+
+        // profile 타입 검증
+        if (!imageKey.startsWith("profile/")) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "프로필 이미지 경로가 아닙니다.");
+        }
+
+        AppUser appUser = appUserRepository.findById(userUuid)
+                                           .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 파일을 Public Read로 설정
+        imageService.makeFilePublic(imageKey);
+
+        // Public URL 생성
+        String imageUrl = imageService.getPublicUrl(imageKey);
+
+        appUser.setProfileUrl(imageUrl);
+        appUserRepository.save(appUser);
+
+        return imageUrl;
     }
 
     public MyPageDto getMyPage(String userUuid) {
@@ -72,8 +150,9 @@ public class MyPageService {
         Date reservedStartDate = Date.from(reservedStartLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
         Date reservedEndDate = Date.from(reservedEndLocal.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
 
-        List<YogaClassScheduleDto> reservedClasses = userClassScheduleRepository.findSchedulesBetweenDates(userUuid, reservedStartDate,
-            reservedEndDate);
+        List<YogaClassScheduleDto> reservedClasses = convertToDto(
+            userClassScheduleRepository.findSchedulesBetweenDatesRaw(userUuid, reservedStartDate, reservedEndDate)
+        );
 
         LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate endOfWeek = startOfWeek.plusDays(6);
@@ -81,36 +160,46 @@ public class MyPageService {
         Date startDate = Date.from(startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant());
         Date endDate = Date.from(endOfWeek.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
 
-        List<YogaClassScheduleDto> weekSchedules = userClassScheduleRepository.findSchedulesBetweenDates(userUuid, startDate, endDate);
+        List<YogaClassScheduleDto> weekSchedules = convertToDto(
+            userClassScheduleRepository.findSchedulesBetweenDatesRaw(userUuid, startDate, endDate)
+        );
 
         Map<Boolean, List<YogaClassScheduleDto>> partitioned = weekSchedules.stream()
                                                                             .collect(Collectors.partitioningBy(dto -> {
-                                                                                Integer dow = dto.getDayOfWeek();
-                                                                                return dow != null && dow >= 1 && dow <= 5; // 1..5 = Mon..Fri
+                                                                                Long dow = dto.getDayOfWeek();
+                                                                                return dow != null && dow >= 1L && dow <= 5L; // 1..5 = Mon..Fri
                                                                             }));
 
         List<YogaClassScheduleDto> weekDayClasses = partitioned.getOrDefault(true, List.of());
         List<YogaClassScheduleDto> weekEndClasses = partitioned.getOrDefault(false, List.of());
 
         CategoryCountDto categoryInfo = getTopCategoryForThisMonth(userUuid);
-        List<FavoriteOneDayClassDto> favoriteOneDayClasses = yogaClassRepository.findUserFavoriteOneDayClasses(userUuid);
-        List<FavoriteRegularClassDto> favoriteRegularClasses = yogaClassRepository.findUserFavoriteRegularClasses(userUuid);
+        List<YogaClassDto> favoriteClasses = convertOneDayClassToDto(
+            yogaClassRepository.findUserFavoriteClassesRaw(userUuid)
+        );
+        List<YogaCenterDto> favoriteCenters = yogaCenterRepository.findUserFavoriteCenterRaw(userUuid);
 
         return MyPageDto.builder()
-                        .nickname(appUser.getNickname())
-                        .profileImage(appUser.getProfileUrl())
-                        .accumulatedClass(attendedCount)
-                        .plannedClass(plannedCount)
-                        .accumulatedHours(formatHours(Math.max(0, totalMinutes / 60)))
-                        .grade(getGrade(totalMinutes))
-                        .level(getLevel(totalMinutes))
-                        .monthlyCategory(categoryInfo != null ? categoryInfo.getCategoryName() : null)
-                        .monthlyCategoryCount(categoryInfo != null ? categoryInfo.getCount() : 0L)
+                        .userProfile(UserProfileDto.builder()
+                                                   .nickname(appUser.getNickname())
+                                                   .profileImage(appUser.getProfileUrl())
+                                                   .totalClass(attendedCount)
+                                                   .plannedClass(plannedCount)
+                                                   .totalHour(formatHours(Math.max(0, totalMinutes / 60)))
+                                                   .grade(getGrade(totalMinutes))
+                                                   .level(getLevel(totalMinutes))
+                                                   .monthlyCategory(categoryInfo != null ? categoryInfo.getCategoryName() : null)
+                                                   .monthlyCategoryCount(categoryInfo != null ? categoryInfo.getCount() : 0L)
+                                                   .build()
+                        )
+                        .weekClasses(MyPageDto.WeekClasses.builder()
+                                                          .weekDay(weekDayClasses)
+                                                          .weekEnd(weekEndClasses)
+                                                          .build()
+                        )
                         .reservedClasses(reservedClasses)
-                        .weekDayClasses(weekDayClasses)
-                        .weekEndClasses(weekEndClasses)
-                        .favoriteOneDayClasses(favoriteOneDayClasses)
-                        .favoriteRegularClasses(favoriteRegularClasses)
+                        .favoriteClasses(favoriteClasses)
+                        .favoriteCenters(favoriteCenters)
                         .build();
     }
 
@@ -170,13 +259,54 @@ public class MyPageService {
         LocalDate startLocal = ym.atDay(1);
         LocalDate endLocal = ym.atEndOfMonth();
 
-        Date startDate = Date.from(startLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        Date endDate = Date.from(endLocal.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
+        Date startDate = Date.from(startLocal.atStartOfDay(ZoneId.systemDefault())
+                                             .toInstant());
+        Date endDate = Date.from(endLocal.atTime(LocalTime.MAX)
+                                         .atZone(ZoneId.systemDefault())
+                                         .toInstant());
 
         List<CategoryCountDto> counts = userClassScheduleRepository.findTopCategoriesByUserForPeriod(userUuid, startDate, endDate);
         if (counts == null || counts.isEmpty()) {
             return null;
         }
         return counts.get(0);
+    }
+
+    private List<YogaClassScheduleDto> convertToDto(List<Object[]> rawResults) {
+        return rawResults.stream()
+                         .map(row -> {
+                             String classId = (String) row[0];
+                             String className = (String) row[1];
+                             Timestamp timestamp = (Timestamp) row[2];
+                             Date day = new Date(timestamp.getTime());
+                             Integer dayOfWeek = (Integer) row[3];
+                             String thumbnailUrl = (String) row[4];
+                             String address = (String) row[5];
+                             Long attendance = ((Number) row[6]).longValue();
+                             String categoriesStr = (String) row[7];
+
+                             return new YogaClassScheduleDto(classId, className, day, dayOfWeek.longValue(),
+                                 thumbnailUrl, address, attendance, categoriesStr);
+                         })
+                         .collect(Collectors.toList());
+    }
+
+    private List<YogaClassDto> convertOneDayClassToDto(List<Object[]> rawResults) {
+        return rawResults.stream()
+                         .map(row -> {
+                             String classId = (String) row[0];
+                             String className = (String) row[1];
+                             String thumbnail = (String) row[2];
+                             String masterId = (String) row[3];
+                             String masterName = (String) row[4];
+                             // row[5] is NULL
+                             Number rating = (Number) row[6];
+                             Long reviewCount = ((Number) row[7]).longValue();
+                             String categoriesStr = (String) row[8];
+
+                             return new YogaClassDto(classId, className, thumbnail, masterId, masterName,
+                                 null, rating, reviewCount, categoriesStr);
+                         })
+                         .collect(Collectors.toList());
     }
 }
