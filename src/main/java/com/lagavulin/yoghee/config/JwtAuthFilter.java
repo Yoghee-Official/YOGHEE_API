@@ -6,13 +6,12 @@ import java.util.Collections;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.CustomOAuth2User;
-import com.lagavulin.yoghee.service.auth.JwtLoginService;
+import com.lagavulin.yoghee.service.auth.jwt.AuthenticationService;
 import com.lagavulin.yoghee.util.ResponseUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +29,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtLoginService jwtLoginService;
+    private final AuthenticationService authenticationService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-        throws ServletException, IOException {
+        throws IOException {
 
         try {
+            // 정적 리소스 및 인증 불필요 경로는 JWT 검증 건너뛰기
+            String requestURI = request.getRequestURI();
+            if (shouldNotFilter(requestURI)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -45,7 +51,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             String token = authHeader.substring(7);
 
-            CustomOAuth2User loginUser = jwtLoginService.parse(token);
+            CustomOAuth2User loginUser = authenticationService.authenticateWithAccessToken(token);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(loginUser.getUserId(), null,
                 Collections.emptyList());
@@ -76,5 +82,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             response.getWriter().write(json);
             response.getWriter().flush();
         }
+    }
+
+    /**
+     * JWT 필터링을 건너뛸 경로 정의
+     */
+    private boolean shouldNotFilter(String requestURI) {
+        return requestURI.startsWith("/favicon.ico") ||
+            requestURI.startsWith("/images/") ||
+            requestURI.startsWith("/css/") ||
+            requestURI.startsWith("/js/") ||
+            requestURI.startsWith("/auth/") ||
+            requestURI.startsWith("/sso/") ||
+            requestURI.equals("/login.html") ||
+            requestURI.equals("/self.html") ||
+            requestURI.startsWith("/actuator/health");
     }
 }

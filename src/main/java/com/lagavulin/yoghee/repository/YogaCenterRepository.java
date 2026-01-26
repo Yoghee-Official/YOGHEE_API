@@ -31,7 +31,14 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
                 c.centerId,
-                c.address,
+                c.addressDepth1,
+                c.addressDepth2,
+                c.addressDepth3,
+                c.fullAddress,
+                c.roadAddress,
+                c.jibunAddress,
+                c.zonecode,
+                c.addressDetail,
                 c.name,
                 c.thumbnail,
                 COUNT(DISTINCT uf.userUuid),
@@ -44,7 +51,7 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
             FROM YogaCenter c
             LEFT JOIN UserFavorite uf ON uf.id = c.centerId AND uf.type = 'CENTER' AND (:userUuid IS NULL OR uf.userUuid = :userUuid)
             WHERE c.centerId IN :centerIds
-            GROUP BY c.centerId, c.address, c.name, c.thumbnail, uf.userUuid
+            GROUP BY c.centerId, c.addressDepth1, c.addressDepth2, c.addressDepth3, c.fullAddress, c.roadAddress, c.jibunAddress, c.zonecode, c.addressDetail, c.name, c.thumbnail, uf.userUuid
         """)
     List<YogaCenterDto> findYogaCenterWithFavoriteCount(Collection<String> centerIds, String userUuid);
 
@@ -67,7 +74,14 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
                 c.centerId,
-                c.address,
+                c.addressDepth1,
+                c.addressDepth2,
+                c.addressDepth3,
+                c.fullAddress,
+                c.roadAddress,
+                c.jibunAddress,
+                c.zonecode,
+                c.addressDetail,
                 c.name,
                 c.thumbnail,
                 COUNT(DISTINCT uf.userUuid),
@@ -91,4 +105,22 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
         ORDER BY COUNT(c) DESC
         """)
     List<String> findTopClickedClasses(LocalDate fromDate, PageRequest of);
+
+    @Query("""
+        SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
+            c.centerId,
+            CONCAT(c.addressDepth1, ' ', c.addressDepth2, ' ', c.addressDepth3),
+            c.name,
+            c.thumbnail,
+            COUNT(DISTINCT uf.userUuid),
+            true
+        )
+        FROM YogaCenter c
+        JOIN UserFavorite uf
+            ON uf.id = c.centerId
+           AND uf.type = 'CENTER'
+           AND uf.userUuid = :userUuid
+        GROUP BY c.centerId, c.name, c.thumbnail, c.addressDepth1, c.addressDepth2, c.addressDepth3
+        """)
+    List<YogaCenterDto> findUserFavoriteCenterRaw(String userUuid);
 }

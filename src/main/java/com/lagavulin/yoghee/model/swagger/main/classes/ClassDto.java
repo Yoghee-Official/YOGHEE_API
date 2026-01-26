@@ -1,5 +1,7 @@
 package com.lagavulin.yoghee.model.swagger.main.classes;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,4 +30,10 @@ public class ClassDto {
 
     @Schema(description = "작성된 리뷰수", example = "352")
     private Number review;
+
+    @Schema(description = "찜한 수", example = "694")
+    private Number favoriteCount;
+
+    @Schema(description = "카테고리", example = "[\"빈야사\", \"하타\"]")
+    private List<String> categories;
 }

@@ -17,27 +17,42 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequestMapping("/api/image")
 @RequiredArgsConstructor
 @Tag(name = "Image", description = "이미지 관련 API")
 public class ImageController {
+
     private final ImageService imageService;
 
     @PostMapping("/presign")
-    @Operation(summary = "이미지 presign API", description = "이미지 등록 전 presign URL 발급",
-    requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "파일 업로드 Model",
-        required = true,
-        content = @Content(schema =  @Schema(implementation = ImageUploadDto.class))
-    ),
-    responses = {
-        @ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공",
-            content = @Content(schema = @Schema(implementation = ImagePresignResponseDto.class))
+    @Operation(summary = "이미지 presign API",
+        description = """
+                이미지 업로드를 위한 Presigned URL 발급
+            
+                **사용 방법:**
+                1. 이 API로 Presigned URL과 imageKey 발급
+                2. Presigned URL로 파일 업로드 (PUT 요청)
+                3. 각 도메인 API (프로필 변경, 자격증 등록 등)에 imageKey 전달
+                   → 자동으로 파일이 Public 처리되고 최종 URL 반환
+            
+                **Type 종류:**
+                - profile: 프로필 이미지
+                - license: 자격증 이미지
+                - class: 클래스 이미지
+                - center: 센터 이미지
+            """,
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "파일 업로드 Model",
+            required = true,
+            content = @Content(schema = @Schema(implementation = ImageUploadDto.class))
+        ),
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공",
+                content = @Content(schema = @Schema(implementation = ImagePresignResponseDto.class))
             )
-    })
-    public ResponseEntity<?> presign(@RequestBody PresignedFileDto presignedFileDto){
+        })
+    public ResponseEntity<?> presign(@RequestBody PresignedFileDto presignedFileDto) {
         return ResponseUtil.success(imageService.generatePresignedUrls(presignedFileDto));
     }
 }

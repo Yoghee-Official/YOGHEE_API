@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>자격증 승인 요청</title>
+  <style>
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .info-box {
+      background-color: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .info-box h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .info-box p {
+      margin: 5px 0;
+      color: #666;
+    }
+
+    .license-image {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+
+    .button-row {
+      margin: 15px 0;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      margin: 0 10px;
+      text-decoration: none;
+      color: white;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .btn-approve {
+      background-color: #28a745;
+    }
+
+    .btn-approve:hover {
+      background-color: #218838;
+    }
+
+    .btn-reject {
+      background-color: #dc3545;
+    }
+
+    .btn-reject:hover {
+      background-color: #c82333;
+    }
+
+    .select-box {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .footer {
+      background-color: #333;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+    }
+
+    .warning {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🧘‍♀️ 새로운 자격증 승인 요청</h1>
+  </div>
+
+  <div class="content">
+    <h2>관리자님, 안녕하세요!</h2>
+    <p>새로운 자격증 인증 요청이 등록되었습니다.</p>
+
+    <div class="info-box">
+      <h3>📋 신청자 정보</h3>
+      <p><strong>사용자 UUID:</strong> <span th:text="${userUuid}">user-uuid</span></p>
+      <p><strong>이메일:</strong> <span th:text="${userEmail}">user@example.com</span></p>
+      <p><strong>이름:</strong> <span th:text="${userName}">홍길동</span></p>
+      <p><strong>신청일시:</strong> <span th:text="${submittedAt}">2024-01-24 10:30:00</span></p>
+    </div>
+
+    <div class="info-box">
+      <h3>📄 자격증 정보</h3>
+      <p><strong>자격증 UUID:</strong> <span th:text="${licenseUuid}">license-uuid</span></p>
+    </div>
+
+    <hr>
+
+    <h3 style="text-align: center;">📸 업로드된 자격증 이미지</h3>
+    <div style="text-align: center;">
+      <img th:src="${imageUrl}" alt="자격증 이미지" class="license-image">
+      <p style="font-size: 12px; color: #666;">
+        <a th:href="${imageUrl}" target="_blank">새 탭에서 크게 보기</a>
+      </p>
+    </div>
+
+    <hr>
+
+    <!-- 승인 섹션 -->
+    <div class="button-container" style="background-color: #e8f5e9;">
+      <h3 style="color: #28a745;">✅ 승인하기</h3>
+      <p style="font-size: 14px; color: #666;">자격증 타입을 선택한 후 승인 버튼을 클릭하세요</p>
+
+      <form th:action="${domain + '/admin/license/approve'}" method="POST" style="margin-top: 15px;">
+        <input type="hidden" name="token" th:value="${secureToken}">
+
+        <select name="licenseType" class="select-box" id="licenseTypeSelect" required>
+          <option value="">자격증 타입을 선택하세요</option>
+          <option value="YOGA_ALLIANCE_RYT200">요가얼라이언스 RYT-200</option>
+          <option value="YOGA_ALLIANCE_RYT500">요가얼라이언스 RYT-500</option>
+          <option value="KYTA_LEVEL1">한국요가지도자협회 1급</option>
+          <option value="KYTA_LEVEL2">한국요가지도자협회 2급</option>
+          <option value="PILATES_INSTRUCTOR">필라테스 지도자</option>
+          <option value="SPORTS_INSTRUCTOR">생활체육지도사</option>
+          <option value="HEALTH_TRAINER">건강운동관리사</option>
+          <option value="OTHER">기타 (직접 입력)</option>
+        </select>
+
+        <input
+            type="text"
+            name="licenseTypeCustom"
+            id="licenseTypeCustomInput"
+            class="select-box"
+            placeholder="'기타' 선택 시에만 입력하세요"
+            maxlength="50">
+
+        <button type="submit" class="button btn-approve">승인</button>
+      </form>
+    </div>
+
+    <hr>
+
+    <!-- 거절 섹션 -->
+    <div class="button-container" style="background-color: #ffebee;">
+      <h3 style="color: #dc3545;">❌ 거절하기</h3>
+      <p style="font-size: 14px; color: #666;">거절 사유를 선택한 후 거절 버튼을 클릭하세요</p>
+
+      <form th:action="${domain + '/admin/license/reject'}" method="POST" style="margin-top: 15px;">
+        <input type="hidden" name="token" th:value="${secureToken}">
+
+        <select name="rejectReason" class="select-box" id="rejectReasonSelect" required>
+          <option value="">거절 사유를 선택하세요</option>
+          <option value="UNCLEAR_IMAGE">이미지가 불명확합니다</option>
+          <option value="INVALID_CERTIFICATE">유효하지 않은 자격증입니다</option>
+          <option value="EXPIRED">만료된 자격증입니다</option>
+          <option value="FAKE_SUSPECTED">위조 의심</option>
+          <option value="WRONG_TYPE">요가 관련 자격증이 아닙니다</option>
+          <option value="INCOMPLETE_INFO">자격증 정보가 불완전합니다</option>
+          <option value="OTHER">기타 사유</option>
+        </select>
+
+        <textarea
+            name="rejectDetail"
+            id="rejectDetailText"
+            class="select-box"
+            rows="3"
+            placeholder="'기타 사유' 선택 시에만 입력하세요"
+            style="resize: vertical;"></textarea>
+
+        <p class="warning">⚠️ 거절 시 사용자에게 이메일로 통보됩니다</p>
+
+        <button type="submit" class="button btn-reject">거절</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© 2024 Yoghee. All rights reserved.</p>
+    <p>이 이메일은 관리자 전용입니다. 외부 공유를 금지합니다.</p>
+  </div>
+</div>
+</body>
+</html>
+

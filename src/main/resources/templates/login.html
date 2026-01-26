@@ -3,17 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <title>로그인 테스트 페이지</title>
+  <style>
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin: 100px auto;
+      max-width: 400px;
+    }
+
+    .login-section {
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .login-button img {
+      max-width: 300px;
+      cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .login-button img:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  </style>
 </head>
 <body>
-<div class="container" style="display: flex; justify-content: center; align-content: center; align-items: center; flex-direction: column; margin: 200px auto; ">
-  <h1>카카오 로그인</h1>
-  <a th:href="${kakaoLocation}">
-    <img src="/images/kakao_login.png" >
-  </a>
-  <h1>구글 로그인</h1>
-  <a th:href="${googleLocation}">
-    <img src="/images/google_login.png" >
-  </a>
+<div class="login-container">
+  <h1>SSO 로그인 테스트</h1>
+
+  <div class="login-section">
+    <h2>카카오 로그인</h2>
+    <a th:href="${kakaoLocation}" class="login-button">
+      <img src="/images/kakao_login.png" alt="카카오 로그인">
+    </a>
+  </div>
+
+  <div class="login-section">
+    <h2>구글 로그인</h2>
+    <a th:href="${googleLocation}" class="login-button">
+      <img src="/images/google_login.png" alt="구글 로그인">
+    </a>
+  </div>
+
+  <div class="login-section">
+    <h2>네이버 로그인</h2>
+    <a th:href="${naverLocation}" class="login-button">
+      <img src="/images/naver_login.png" alt="네이버 로그인">
+    </a>
+  </div>
 </div>
 </body>
 </html>

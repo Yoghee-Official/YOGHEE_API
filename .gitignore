@@ -38,7 +38,7 @@
 # .idea/modules.xml
 # .idea/*.iml
 # .idea/modules
-# *.iml
+*.iml
 # *.ipr
 
 # CMake
@@ -198,6 +198,4 @@ gradle-app.setting
 *.hprof
 
 .gitattributes
-*.iml
-
 src/main/resources/config/
