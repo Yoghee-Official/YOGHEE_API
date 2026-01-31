@@ -38,7 +38,7 @@ public class UserClassSchedule {
 
     @Column(name = "SPECIFIC_DATE")
     private Date specificDate;
-    
+
     // 참석 상태 (기본: REGISTERED)
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false)
@@ -46,4 +46,8 @@ public class UserClassSchedule {
 
     @Column(name = "DURATION_MINUTES")
     private Integer durationMinutes;
+
+    // 신청 인원 수 (기본: 1명)
+    @Column(name = "ATTENDEE_COUNT", nullable = false)
+    private Integer attendeeCount = 1;
 }

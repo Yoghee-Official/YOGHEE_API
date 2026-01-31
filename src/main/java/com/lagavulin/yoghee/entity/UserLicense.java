@@ -1,5 +1,7 @@
 package com.lagavulin.yoghee.entity;
 
+import java.util.Date;
+
 import com.lagavulin.yoghee.model.enums.LicenseRejectReason;
 import com.lagavulin.yoghee.model.enums.LicenseType;
 import jakarta.persistence.Column;
@@ -15,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Getter
 @Setter
@@ -52,4 +55,8 @@ public class UserLicense {
 
     @Column(name = "REJECT_DETAIL")
     private String rejectDetail; // 기타 사유 상세 내용
+
+    @Column(name = "CREATED_AT")
+    @CreationTimestamp
+    private Date createdAt;
 }

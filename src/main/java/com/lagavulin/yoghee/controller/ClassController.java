@@ -2,6 +2,7 @@ package com.lagavulin.yoghee.controller;
 
 import java.security.Principal;
 
+import com.lagavulin.yoghee.model.dto.AttendanceDto;
 import com.lagavulin.yoghee.model.dto.CategoryClassDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
 import com.lagavulin.yoghee.service.ClassService;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -91,5 +93,153 @@ public class ClassController {
         classService.addFavoriteClass(userUuid, classId);
 
         return ResponseUtil.success("클래스 찜 처리 완료 " + classId);
+    }
+
+    @GetMapping("/attendance/{scheduleId}")
+    @Operation(summary = "클래스 스케줄 참석자 조회 API", description = "특정 스케줄의 참석자 목록을 조회합니다. (지도자 전용)",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "참석자 목록 조회 성공",
+                content = @Content(mediaType = "application/json",
+                    array = @ArraySchema(
+                        schema = @Schema(implementation = AttendanceDto.class)
+                    )
+                )
+            ),
+            @ApiResponse(
+                responseCode = "403",
+                description = "권한 없음",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 403,
+                                        "status": "fail",
+                                        "errorCode": "FORBIDDEN",
+                                        "message": "해당 클래스의 지도자만 참석자 목록을 조회할 수 있습니다."
+                                    }
+                            """
+                    )
+                )
+            )
+        })
+    public ResponseEntity<?> getClassScheduleAttendance(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰", required = true) Principal principal,
+        @Parameter(name = "scheduleId", description = "스케줄 ID", example = "schedule-001")
+        @PathVariable(name = "scheduleId") String scheduleId) {
+        return ResponseUtil.success(classService.getClassScheduleAttendance(scheduleId, principal.getName()));
+    }
+
+    @PatchMapping("/attendance/{scheduleId}/all")
+    @Operation(
+        summary = "스케줄 참석자 전체 출석 처리 API",
+        description = "특정 스케줄의 모든 REGISTERED 상태 참석자를 ATTENDED로 일괄 변경합니다. (지도자 전용)",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "출석 처리 성공",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 200,
+                                        "status": "success",
+                                        "data": "5명의 참석자를 출석 처리했습니다."
+                                    }
+                            """
+                    )
+                )
+            ),
+            @ApiResponse(
+                responseCode = "403",
+                description = "권한 없음",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 403,
+                                        "status": "fail",
+                                        "errorCode": "FORBIDDEN",
+                                        "message": "해당 클래스의 지도자만 출석 처리를 할 수 있습니다."
+                                    }
+                            """
+                    )
+                )
+            )
+        }
+    )
+    public ResponseEntity<?> markAllAttendance(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰", required = true) Principal principal,
+        @Parameter(name = "scheduleId", description = "스케줄 ID", example = "schedule-001")
+        @PathVariable(name = "scheduleId") String scheduleId) {
+
+        int updatedCount = classService.markAllAttendance(scheduleId, principal.getName());
+
+        return ResponseUtil.success(updatedCount + "명의 참석자를 출석 처리했습니다.");
+    }
+
+    @PatchMapping("/attendance/{attendanceId}")
+    @Operation(
+        summary = "개별 참석자 출석 처리 API",
+        description = "특정 참석자를 ATTENDED 상태로 변경합니다. (지도자 전용)",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "출석 처리 성공",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 200,
+                                        "status": "success",
+                                        "data": "출석 처리가 완료되었습니다."
+                                    }
+                            """
+                    )
+                )
+            ),
+            @ApiResponse(
+                responseCode = "403",
+                description = "권한 없음",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 403,
+                                        "status": "fail",
+                                        "errorCode": "FORBIDDEN",
+                                        "message": "해당 클래스의 지도자만 출석 처리를 할 수 있습니다."
+                                    }
+                            """
+                    )
+                )
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "참석 정보를 찾을 수 없음",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(example =
+                        """
+                                    {
+                                        "code": 404,
+                                        "status": "fail",
+                                        "errorCode": "RESOURCE_NOT_FOUND",
+                                        "message": "참석 정보를 찾을 수 없습니다."
+                                    }
+                            """
+                    )
+                )
+            )
+        }
+    )
+    public ResponseEntity<?> markAttendance(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰", required = true) Principal principal,
+        @Parameter(name = "attendanceId", description = "참석 ID (ATTENDANCE_ID)", example = "attendance-uuid-001")
+        @PathVariable(name = "attendanceId") String attendanceId) {
+
+        classService.markAttendance(attendanceId, principal.getName());
+
+        return ResponseUtil.success("출석 처리가 완료되었습니다.");
     }
 }

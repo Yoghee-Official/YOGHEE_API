@@ -15,14 +15,10 @@ import java.util.stream.Collectors;
 
 import com.lagavulin.yoghee.entity.AppUser;
 import com.lagavulin.yoghee.entity.UserLicense;
+import com.lagavulin.yoghee.entity.YogaClass;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
-import com.lagavulin.yoghee.model.dto.CategoryCountDto;
-import com.lagavulin.yoghee.model.dto.MyPageDto;
-import com.lagavulin.yoghee.model.dto.UserProfileDto;
-import com.lagavulin.yoghee.model.dto.YogaCenterDto;
-import com.lagavulin.yoghee.model.dto.YogaClassDto;
-import com.lagavulin.yoghee.model.dto.YogaClassScheduleDto;
+import com.lagavulin.yoghee.model.dto.*;
 import com.lagavulin.yoghee.model.enums.AttendanceStatus;
 import com.lagavulin.yoghee.repository.AppUserRepository;
 import com.lagavulin.yoghee.repository.LicenseRepository;
@@ -203,6 +199,102 @@ public class MyPageService {
                         .build();
     }
 
+    public LeaderPageDto getLeaderPage(String userUuid) {
+        AppUser appUser = appUserRepository.findById(userUuid)
+                                           .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 지도자 자격증 확인 (심사 중인 자격증도 포함)
+        UserLicense userLicense = licenseRepository.findTopByUserUuidOrderByCreatedAtDesc(userUuid);
+
+        if (userLicense == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "자격증이 등록되지 않은 계정입니다. 자격증을 먼저 등록해주세요.");
+        }
+
+        String certificate = null;
+        // 심사 중인 경우
+        if ("U".equals(userLicense.getStatus())) {
+            certificate = "심사 중";
+        }
+        // 대표 자격증 조회 (승인된 자격증 중 가장 최근 것)
+        UserLicense approvedLicense = licenseRepository.findTopByUserUuidAndStatusOrderByCreatedAtDesc(userUuid, "A");
+        if (approvedLicense != null) {
+            if (approvedLicense.getLicenseType() != null) {
+                certificate = approvedLicense.getLicenseType().name();
+            } else if (approvedLicense.getCustomLicenseTypeName() != null) {
+                certificate = approvedLicense.getCustomLicenseTypeName();
+            }
+        }
+        // 지도자가 개설한 클래스 조회 (선택 사항)
+        List<YogaClass> myClasses = yogaClassRepository.findByMasterId(userUuid);
+
+        // 누적 리뷰 수 (내가 개설한 모든 클래스의 리뷰 수 합계)
+        Long totalReview = yogaClassRepository.countAllReviewsByMasterId(userUuid);
+
+        // 개설된 수련 수
+        int totalMyClass = (myClasses != null) ? myClasses.size() : 0;
+
+        // 이번 달 예약이 가장 많은 카테고리 조회
+        LocalDate today = LocalDate.now();
+        YearMonth ym = YearMonth.from(today);
+        LocalDate startLocal = ym.atDay(1);
+        LocalDate endLocal = ym.atEndOfMonth();
+
+        Date startDate = Date.from(startLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date endDate = Date.from(endLocal.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
+
+        CategoryCountDto popularCategoryInfo = yogaClassRepository.findMostReservedCategoryByMasterIdForPeriod(
+            userUuid, startDate, endDate
+        );
+
+        String popularCategory = (popularCategoryInfo != null) ? popularCategoryInfo.getCategoryName() : "";
+        Long reservedCount = (popularCategoryInfo != null) ? popularCategoryInfo.getCount() : 0L;
+
+        // 오늘의 수업 (오늘 날짜와 요일에 해당하는 스케줄)
+        LocalDate nowDate = LocalDate.now();
+        Date todayStart = Date.from(nowDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date todayEnd = Date.from(nowDate.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
+
+        List<YogaClassScheduleDto> todayClasses = convertToDto(
+            yogaClassRepository.findTodayClassesByMasterIdRaw(userUuid, todayStart, todayEnd)
+        );
+
+        // 예약된 수업 목록 (작년 이번달 1일 ~ 내년 이번달 말일)
+        LocalDate reservedStartLocal = today.minusYears(1).withDayOfMonth(1);
+        LocalDate reservedEndLocal = YearMonth.from(today.plusYears(1)).atEndOfMonth();
+
+        Date reservedStartDate = Date.from(reservedStartLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date reservedEndDate = Date.from(reservedEndLocal.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant());
+
+        List<YogaClassScheduleDto> reservedClasses = convertToDto(
+            yogaClassRepository.findSchedulesByMasterIdBetweenDatesRaw(userUuid, reservedStartDate, reservedEndDate)
+        );
+
+        return LeaderPageDto.builder()
+                            .leaderProfile(LeaderProfileDto.builder()
+                                                           .nickname(appUser.getNickname())
+                                                           .profileImage(appUser.getProfileUrl())
+                                                           .totalReview(totalReview)
+                                                           .totalMyClass(totalMyClass)
+                                                           .introduction(appUser.getIntroduction())
+                                                           .certificate(certificate)
+                                                           .popularCategory(popularCategory)
+                                                           .reservedCount(reservedCount)
+                                                           .build()
+                            )
+                            .todayClasses(todayClasses)
+                            .reservedClasses(reservedClasses)
+                            .build();
+    }
+
+
+    public void updateLeaderIntroduction(String name, UpdateLeaderIntroductionDto introduction) {
+        AppUser appUser = appUserRepository.findById(name)
+                                           .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        appUser.setIntroduction(introduction.getIntroduction());
+        appUserRepository.save(appUser);
+    }
+
     private String formatHours(int hours) {
         String hourDisplay;
         if (hours > 99999) {
@@ -277,8 +369,17 @@ public class MyPageService {
                          .map(row -> {
                              String classId = (String) row[0];
                              String className = (String) row[1];
-                             Timestamp timestamp = (Timestamp) row[2];
-                             Date day = new Date(timestamp.getTime());
+                             // row[2]는 Timestamp 또는 Date일 수 있으므로 안전하게 처리
+                             Date day;
+                             if (row[2] instanceof Timestamp) {
+                                 day = new Date(((Timestamp) row[2]).getTime());
+                             } else if (row[2] instanceof java.sql.Date) {
+                                 day = new Date(((java.sql.Date) row[2]).getTime());
+                             } else if (row[2] instanceof Date) {
+                                 day = (Date) row[2];
+                             } else {
+                                 throw new IllegalArgumentException("Unexpected date type: " + row[2].getClass());
+                             }
                              Integer dayOfWeek = (Integer) row[3];
                              String thumbnailUrl = (String) row[4];
                              String address = (String) row[5];

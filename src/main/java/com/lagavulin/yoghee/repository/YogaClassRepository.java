@@ -3,6 +3,7 @@ package com.lagavulin.yoghee.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import com.lagavulin.yoghee.entity.YogaClass;
@@ -333,4 +334,106 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.CLASS_ID, c.NAME, c.THUMBNAIL, c.ADDRESS
         """, nativeQuery = true)
     List<Object[]> findUserFavoriteRegularClassesRaw(String userUuid);
+
+    // === 지도자 관련 쿼리 ===
+
+    /**
+     * 지도자가 개설한 모든 클래스 조회
+     */
+    List<YogaClass> findByMasterId(String masterId);
+
+    /**
+     * 지도자가 개설한 모든 클래스의 리뷰 수 합계
+     */
+    @Query(value = """
+            SELECT COUNT(r.reviewId)
+            FROM YogaClassReview r
+            WHERE r.classId IN (SELECT c.classId FROM YogaClass c WHERE c.masterId = :masterId)
+        """)
+    Long countAllReviewsByMasterId(@Param("masterId") String masterId);
+
+    /**
+     * 지도자의 이번 달 가장 예약이 많은 카테고리 조회
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryCountDto(
+                cat.name,
+                COUNT(DISTINCT ucs.attendanceId)
+            )
+            FROM UserClassSchedule ucs
+            JOIN YogaClassSchedule cs ON ucs.scheduleId = cs.scheduleId
+            JOIN YogaClass c ON cs.classId = c.classId
+            JOIN YogaClassCategory ycc ON c.classId = ycc.classId
+            JOIN Category cat ON ycc.categoryId = cat.categoryId
+            WHERE c.masterId = :masterId
+              AND ucs.status = 'REGISTERED'
+              AND cs.specificDate BETWEEN :startDate AND :endDate
+            GROUP BY cat.categoryId, cat.name
+            ORDER BY COUNT(DISTINCT ucs.attendanceId) DESC
+        """)
+    com.lagavulin.yoghee.model.dto.CategoryCountDto findMostReservedCategoryByMasterIdForPeriod(
+        @Param("masterId") String masterId,
+        @Param("startDate") Date startDate,
+        @Param("endDate") Date endDate
+    );
+
+    /**
+     * 지도자의 오늘 수업 조회 (Native Query)
+     */
+    @Query(value = """
+            SELECT
+                c.CLASS_ID,
+                c.NAME,
+                cs.SPECIFIC_DATE,
+                cs.DAY_OF_WEEK,
+                c.THUMBNAIL,
+                c.ADDRESS,
+                COALESCE(SUM(ucs.ATTENDEE_COUNT), 0),
+                (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
+                 FROM CLASS_CATEGORY cc
+                 JOIN CATEGORY cat ON cc.CATEGORY_ID = cat.CATEGORY_ID
+                 WHERE cc.CLASS_ID = c.CLASS_ID)
+            FROM CLASS c
+            JOIN CLASS_SCHEDULE cs ON c.CLASS_ID = cs.CLASS_ID
+            LEFT JOIN USER_CLASS_SCHEDULE ucs ON cs.SCHEDULE_ID = ucs.SCHEDULE_ID
+            WHERE c.MASTER_ID = :masterId
+              AND cs.SPECIFIC_DATE BETWEEN :todayStart AND :todayEnd
+            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, c.ADDRESS
+            ORDER BY cs.SPECIFIC_DATE, cs.START_TIME
+        """, nativeQuery = true)
+    List<Object[]> findTodayClassesByMasterIdRaw(
+        @Param("masterId") String masterId,
+        @Param("todayStart") Date todayStart,
+        @Param("todayEnd") Date todayEnd
+    );
+
+    /**
+     * 지도자의 스케줄 조회 (기간 범위) (Native Query)
+     */
+    @Query(value = """
+            SELECT
+                c.CLASS_ID,
+                c.NAME,
+                cs.SPECIFIC_DATE,
+                DAYOFWEEK(cs.SPECIFIC_DATE) - 1,
+                c.THUMBNAIL,
+                c.ADDRESS,
+                COALESCE(SUM(ucs.ATTENDEE_COUNT), 0),
+                (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
+                 FROM CLASS_CATEGORY cc
+                 JOIN CATEGORY cat ON cc.CATEGORY_ID = cat.CATEGORY_ID
+                 WHERE cc.CLASS_ID = c.CLASS_ID)
+            FROM CLASS c
+            JOIN CLASS_SCHEDULE cs ON c.CLASS_ID = cs.CLASS_ID
+            LEFT JOIN USER_CLASS_SCHEDULE ucs ON cs.SCHEDULE_ID = ucs.SCHEDULE_ID
+            WHERE c.MASTER_ID = :masterId
+              AND cs.SPECIFIC_DATE BETWEEN :startDate AND :endDate
+            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, c.ADDRESS
+            ORDER BY cs.SPECIFIC_DATE, cs.START_TIME
+        """, nativeQuery = true)
+    List<Object[]> findSchedulesByMasterIdBetweenDatesRaw(
+        @Param("masterId") String masterId,
+        @Param("startDate") Date startDate,
+        @Param("endDate") Date endDate
+    );
 }

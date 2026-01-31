@@ -7,9 +7,11 @@ import com.lagavulin.yoghee.entity.UserClassSchedule;
 import com.lagavulin.yoghee.model.dto.CategoryCountDto;
 import com.lagavulin.yoghee.model.enums.AttendanceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface UserClassScheduleRepository extends JpaRepository<UserClassSchedule, String> {
@@ -38,7 +40,7 @@ public interface UserClassScheduleRepository extends JpaRepository<UserClassSche
                 cs.DAY_OF_WEEK,
                 c.THUMBNAIL,
                 c.ADDRESS,
-                (SELECT COUNT(DISTINCT u.USER_UUID) 
+                (SELECT COALESCE(SUM(u.ATTENDEE_COUNT), 0)
                  FROM USER_CLASS_SCHEDULE u 
                  WHERE u.SCHEDULE_ID = cs.SCHEDULE_ID),
                 (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
@@ -76,4 +78,56 @@ public interface UserClassScheduleRepository extends JpaRepository<UserClassSche
     List<CategoryCountDto> findTopCategoriesByUserForPeriod(@Param("userUuid") String userUuid,
         @Param("startDate") Date startDate,
         @Param("endDate") Date endDate);
+
+    /**
+     * 특정 스케줄의 참석자 목록 조회
+     */
+    @Query(value = """
+            SELECT
+                ucs.ATTENDANCE_ID,
+                ucs.USER_UUID,
+                u.NICKNAME,
+                cs.SPECIFIC_DATE,
+                cs.START_TIME,
+                cs.END_TIME,
+                ucs.ATTENDEE_COUNT,
+                ucs.STATUS
+            FROM USER_CLASS_SCHEDULE ucs
+            JOIN CLASS_SCHEDULE cs ON ucs.SCHEDULE_ID = cs.SCHEDULE_ID
+            JOIN APP_USER u ON ucs.USER_UUID = u.USER_UUID
+            WHERE ucs.SCHEDULE_ID = :scheduleId
+            ORDER BY ucs.CREATED_AT
+        """, nativeQuery = true)
+    List<Object[]> findAttendancesByScheduleIdRaw(@Param("scheduleId") String scheduleId);
+
+    /**
+     * 특정 스케줄의 모든 REGISTERED 상태 참석자를 ATTENDED로 변경
+     */
+    @Modifying
+    @Transactional
+    @Query("""
+            UPDATE UserClassSchedule ucs
+            SET ucs.status = :newStatus
+            WHERE ucs.scheduleId = :scheduleId
+            AND ucs.status = :currentStatus
+        """)
+    int updateStatusByScheduleId(
+        @Param("scheduleId") String scheduleId,
+        @Param("currentStatus") AttendanceStatus currentStatus,
+        @Param("newStatus") AttendanceStatus newStatus
+    );
+
+    /**
+     * 특정 스케줄의 REGISTERED 상태 참석자 수 조회
+     */
+    @Query("""
+            SELECT COUNT(ucs)
+            FROM UserClassSchedule ucs
+            WHERE ucs.scheduleId = :scheduleId
+            AND ucs.status = :status
+        """)
+    int countByScheduleIdAndStatus(
+        @Param("scheduleId") String scheduleId,
+        @Param("status") AttendanceStatus status
+    );
 }
