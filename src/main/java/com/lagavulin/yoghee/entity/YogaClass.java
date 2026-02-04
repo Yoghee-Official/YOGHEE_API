@@ -1,18 +1,12 @@
 package com.lagavulin.yoghee.entity;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import com.lagavulin.yoghee.model.dto.YogaClassDto;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,13 +37,25 @@ public class YogaClass {
     @Column(name = "CENTER_ID")
     private String centerId;
 
+    // 주소 참조 (기존 주소 컬럼 대신)
+    @Column(name = "ADDRESS_ID")
+    private String addressId;
+
+    @OneToOne
+    @JoinColumn(name = "ADDRESS_ID", insertable = false, updatable = false)
+    private YogaCenterAddress address;
+
+    // 기존 주소 필드들은 주석 처리 (데이터 이관 후 삭제)
+    /*
     private String address;
-
     private double latitude;
-
     private double longitude;
+    */
 
-    private long capacity;
+    @Column(name = "MIN_CAPACITY")
+    private Long minCapacity;
+
+    private Long capacity;
 
     @Column(name = "MAIN_DISPLAY")
     private String mainDisplay;
@@ -70,18 +76,6 @@ public class YogaClass {
     )
     private Set<Category> categories = new HashSet<>();
 
-    public YogaClassDto toDto() {
-        return YogaClassDto.builder()
-                           .className(name)
-                           .classId(classId)
-                           .type(type)
-                           .address(address)
-                           .description(description)
-                           .price(price)
-                           .latitude(latitude)
-                           .longitude(longitude)
-                           .thumbnail(thumbnail)
-                           .capacity(capacity)
-                           .build();
-    }
+    @OneToMany(mappedBy = "yogaClass", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ClassFeature> features = new ArrayList<>();
 }
