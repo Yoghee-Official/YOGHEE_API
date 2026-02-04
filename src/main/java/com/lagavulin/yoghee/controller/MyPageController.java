@@ -32,7 +32,7 @@ public class MyPageController {
 
     private final MyPageService myPageService;
 
-    @GetMapping("/")
+    @GetMapping
     @Operation(
         summary = "마이페이지 조회 API",
         description = "마이페이지 정보 조회 API",
