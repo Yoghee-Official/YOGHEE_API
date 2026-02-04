@@ -31,14 +31,7 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
                 c.centerId,
-                c.addressDepth1,
-                c.addressDepth2,
-                c.addressDepth3,
-                c.fullAddress,
-                c.roadAddress,
-                c.jibunAddress,
-                c.zonecode,
-                c.addressDetail,
+                CONCAT(ca.depth1, ' ', ca.depth2, ' ', ca.depth3),
                 c.name,
                 c.thumbnail,
                 COUNT(DISTINCT uf.userUuid),
@@ -49,9 +42,10 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
                 END
             )
             FROM YogaCenter c
+            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
             LEFT JOIN UserFavorite uf ON uf.id = c.centerId AND uf.type = 'CENTER' AND (:userUuid IS NULL OR uf.userUuid = :userUuid)
             WHERE c.centerId IN :centerIds
-            GROUP BY c.centerId, c.addressDepth1, c.addressDepth2, c.addressDepth3, c.fullAddress, c.roadAddress, c.jibunAddress, c.zonecode, c.addressDetail, c.name, c.thumbnail, uf.userUuid
+            GROUP BY c.centerId, ca.depth1, ca.depth2, ca.depth3, c.name, c.thumbnail, uf.userUuid
         """)
     List<YogaCenterDto> findYogaCenterWithFavoriteCount(Collection<String> centerIds, String userUuid);
 
@@ -74,14 +68,7 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
     @Query(value = """
             SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
                 c.centerId,
-                c.addressDepth1,
-                c.addressDepth2,
-                c.addressDepth3,
-                c.fullAddress,
-                c.roadAddress,
-                c.jibunAddress,
-                c.zonecode,
-                c.addressDetail,
+                CONCAT(ca.depth1, ' ', ca.depth2, ' ', ca.depth3),
                 c.name,
                 c.thumbnail,
                 COUNT(DISTINCT uf.userUuid),
@@ -91,9 +78,10 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
                 END
             )
             FROM YogaCenter c
-            LEFT JOIN UserFavorite uf ON c.centerId = uf.id AND uf.type = "CENTER"
+            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
+            LEFT JOIN UserFavorite uf ON c.centerId = uf.id AND uf.type = 'CENTER'
             WHERE c.centerId IN :centerIds
-            GROUP BY c.centerId
+            GROUP BY c.centerId, ca.depth1, ca.depth2, ca.depth3, c.name, c.thumbnail
         """)
     List<YogaCenterDto> findWithReviewStatsByCenterIds(Set<String> centerIds, String userUuid);
 
@@ -109,18 +97,19 @@ public interface YogaCenterRepository extends JpaRepository<YogaCenter, String> 
     @Query("""
         SELECT new com.lagavulin.yoghee.model.dto.YogaCenterDto(
             c.centerId,
-            CONCAT(c.addressDepth1, ' ', c.addressDepth2, ' ', c.addressDepth3),
+            CONCAT(COALESCE(ca.depth1, ''), ' ', COALESCE(ca.depth2, ''), ' ', COALESCE(ca.depth3, '')),
             c.name,
             c.thumbnail,
             COUNT(DISTINCT uf.userUuid),
             true
         )
         FROM YogaCenter c
+        LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
         JOIN UserFavorite uf
             ON uf.id = c.centerId
            AND uf.type = 'CENTER'
            AND uf.userUuid = :userUuid
-        GROUP BY c.centerId, c.name, c.thumbnail, c.addressDepth1, c.addressDepth2, c.addressDepth3
+        GROUP BY c.centerId, c.name, c.thumbnail, ca.depth1, ca.depth2, ca.depth3
         """)
     List<YogaCenterDto> findUserFavoriteCenterRaw(String userUuid);
 }

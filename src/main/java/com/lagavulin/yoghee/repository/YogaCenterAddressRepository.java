@@ -18,7 +18,8 @@ public interface YogaCenterAddressRepository extends JpaRepository<YogaCenterAdd
     @Query("""
             SELECT a
             FROM YogaCenterAddress a
-            WHERE lower(a.streetAddress) LIKE lower(concat('%', :keyword, '%'))
+            WHERE a.fullAddress LIKE lower(concat('%', :keyword, '%'))
+                    OR a.name LIKE lower(concat('%', :keyword, '%'))
         """)
     List<YogaCenterAddress> searchByKeyword(String keyword);
 }

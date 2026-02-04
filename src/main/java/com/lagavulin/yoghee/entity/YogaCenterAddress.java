@@ -1,5 +1,7 @@
 package com.lagavulin.yoghee.entity;
 
+import java.util.Date;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,21 +30,41 @@ public class YogaCenterAddress {
     @Schema(description = "주소정보 PK(UUID)", example = "adf1234e-ab12-cd34-ef56-abcdef")
     private String addressId;
 
-    @Schema(description = "국가/지역", example = "대한민국")
-    private String country;
+    @Column
+    @Schema(description = "시/도", example = "서울")
+    private String depth1;
 
-    @Schema(description = "광역시/도", example = "경기도 or 서울특별시 or 제주특별자치도 or 대구광역시")
-    private String state;
+    @Column
+    @Schema(description = "시/군/구", example = "강남구")
+    private String depth2;
 
-    @Schema(description = "시/군/구", example = "성남시 분당구 or 서초구 or 제주시 or 수성구")
-    private String city;
+    @Column
+    @Schema(description = "동/읍/면", example = "역삼동")
+    private String depth3;
 
-    @Column(name = "STREET_ADDRESS")
-    @Schema(description = "도로명 주소", example = "다산중앙로 123번길 22-26")
-    private String streetAddress;
+    @Column(name = "ROAD_ADDRESS")
+    @Schema(description = "도로명 주소", example = "서울 강남구 테헤란로 212")
+    private String roadAddress;
 
-    @Schema(description = "우편번호", example = "13561")
-    private String postal;
+    @Column(name = "JIBUN_ADDRESS")
+    @Schema(description = "지번 주소", example = "서울 강남구 역삼동 718-5")
+    private String jibunAddress;
+
+    @Column(name = "ZONECODE")
+    @Schema(description = "우편번호", example = "06220")
+    private String zonecode;
+
+    @Column(name = "ADDRESS_DETAIL")
+    @Schema(description = "상세 주소", example = "멀티캠퍼스 3층")
+    private String addressDetail;
+
+    @Column(name = "FULL_ADDRESS")
+    @Schema(description = "전체 주소", example = "서울 강남구 테헤란로 212 802호")
+    private String fullAddress;
+
+    private Double latitude;
+
+    private Double longitude;
 
     @Schema(description = "수련 장소명", example = "정환요가원")
     private String name;
@@ -53,4 +75,7 @@ public class YogaCenterAddress {
 
     @Column(name = "USER_UUID")
     private String userUuid;
+
+    @Column(name = "CREATED_AT")
+    private Date createdAt;
 }
