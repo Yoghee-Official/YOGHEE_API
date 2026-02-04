@@ -50,6 +50,12 @@ public class AppUser {
     private SsoType ssoType;
     private Long point;
 
+    @Column(name = "INTRODUCTION", length = 500)
+    private String introduction;
+
+    @Column(name = "CAREER")
+    private Long career;
+
     @Column(name = "CREATED_AT")
     @CreationTimestamp
     private Date createdAt;
