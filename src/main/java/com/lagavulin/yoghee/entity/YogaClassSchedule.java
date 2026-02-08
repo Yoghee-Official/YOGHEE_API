@@ -41,6 +41,12 @@ public class YogaClassSchedule {
     @Column(name = "END_TIME")
     private LocalTime endTime;
 
+    @Column(name = "MIN_CAPACITY")
+    private Long minCapacity;
+
+    @Column(name = "MAX_CAPACITY")
+    private Long maxCapacity;
+    
     @Column(name = "CONTENT")
     private String content;
 }

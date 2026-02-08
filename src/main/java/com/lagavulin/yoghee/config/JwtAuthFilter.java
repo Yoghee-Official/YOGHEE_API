@@ -94,6 +94,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             requestURI.startsWith("/js/") ||
             requestURI.startsWith("/auth/") ||
             requestURI.startsWith("/sso/") ||
+            requestURI.startsWith("/address/") ||
             requestURI.equals("/login.html") ||
             requestURI.equals("/self.html") ||
             requestURI.startsWith("/actuator/health");

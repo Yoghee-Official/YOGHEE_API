@@ -16,7 +16,7 @@ public class ClassDto {
     @Schema(description = "클래스명", example = "정환이와 함께하는 요가 클래스")
     private String className;
 
-    @Schema(description = "썸네일 이미지명", example = "정환이와 함께하는 요가 클래스")
+    @Schema(description = "썸네일 이미지명", example = "https://image1_url")
     private String thumbnail;
 
     @Schema(description = "요가원 원장 ID", example = "d1594-49853")

@@ -41,7 +41,7 @@ public class YogaCenter {
     @Column(name = "PHONE_NO")
     private String phoneNo;
 
-    @Column(name = "DESC")
+    @Column(name = "`DESC`")
     private String description;
 
     private String thumbnail;
