@@ -112,7 +112,7 @@
         if (callbackUrl) {
           window.location.href = callbackUrl + '?' + params.toString();
         } else {
-          alert('선택된 주소: ' + fullAddress + '\n우편번호: ' + data.zonecode);
+          alert('선택된 주소: ' + fullAddress + '\n우편번호: ' + data.zonecode + '\n도로명주소 : ' + data.roadAddress + '\n지번주소 : ' + data.jibunAddress);
         }
       },
       onclose: function (state) {
