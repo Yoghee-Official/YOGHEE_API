@@ -5,6 +5,7 @@ import java.security.Principal;
 import com.lagavulin.yoghee.entity.YogaCenterAddress;
 import com.lagavulin.yoghee.exception.BusinessException;
 import com.lagavulin.yoghee.exception.ErrorCode;
+import com.lagavulin.yoghee.model.dto.CenterAddressDto;
 import com.lagavulin.yoghee.service.CenterService;
 import com.lagavulin.yoghee.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -67,7 +69,7 @@ public class CenterController {
     }
 
     @GetMapping("/address")
-    @Operation(summary = "요가원 주소 목록 API", description = "유저가 등록한 요가원 주소 목록 조회, 로그인 헤더 or 키워드로 요가원 주소, 키워드값이 있는경우 키워드로 우선 검색처리",
+    @Operation(summary = "요가원 주소 목록 조회 API", description = "유저가 등록한 요가원 주소 목록 조회, 키워드가 있는 경우 키워드로 검색",
         responses = {
             @ApiResponse(responseCode = "200", description = "요가원 주소 목록",
                 content = @Content(mediaType = "application/json",
@@ -94,7 +96,7 @@ public class CenterController {
             @Parameter(name = "keyword", description = "검색 키워드")
         }
     )
-    public ResponseEntity<?> updateCenterAddress(
+    public ResponseEntity<?> getCenterAddresses(
         @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
         @Parameter(name = "keyword", description = "검색 키워드") @RequestParam(required = false) String keyword) {
         if (keyword != null && !keyword.isEmpty()) {
@@ -110,14 +112,13 @@ public class CenterController {
 
     @PostMapping("/address")
     @Operation(
-        summary = "요가원 주소 등록 및 수정 API",
-        description = "요가원 주소 신규 등록 or 업데이트 / addressId가 존재하면 수정, 없으면 신규 등록",
+        summary = "요가원 주소 등록/수정 API",
+        description = "요가원 주소 신규 등록 또는 수정. addressId가 존재하면 수정, 없으면 신규 등록",
         parameters = {
-            @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰"),
-            @Parameter(name = "keyword", description = "검색 키워드")
+            @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰")
         },
         responses = {
-            @ApiResponse(responseCode = "200", description = "주소 처리 완료", content = @Content(mediaType = "application/json",
+            @ApiResponse(responseCode = "200", description = "주소 등록 or 수정", content = @Content(mediaType = "application/json",
                 schema = @Schema(example =
                     """
                             {
@@ -130,9 +131,9 @@ public class CenterController {
             )
         }
     )
-    public ResponseEntity<?> updateCenterAddress(
+    public ResponseEntity<?> createOrUpdateCenterAddress(
         @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
-        @Parameter(name = "address", description = "요가센터 주소 정보") @RequestBody YogaCenterAddress address) {
+        @Parameter(name = "address", description = "요가센터 주소 정보") @Valid @RequestBody CenterAddressDto address) {
         centerService.saveCenterAddress(principal.getName(), address);
 
         return ResponseUtil.success("주소 처리 완료");

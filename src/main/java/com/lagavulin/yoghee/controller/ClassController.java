@@ -4,6 +4,7 @@ import java.security.Principal;
 
 import com.lagavulin.yoghee.model.dto.AttendanceDto;
 import com.lagavulin.yoghee.model.dto.CategoryClassDto;
+import com.lagavulin.yoghee.model.dto.NewClassDto;
 import com.lagavulin.yoghee.model.enums.ClassSortType;
 import com.lagavulin.yoghee.service.ClassService;
 import com.lagavulin.yoghee.util.ResponseUtil;
@@ -35,6 +36,40 @@ public class ClassController {
 
     private final ClassService classService;
 
+    @PostMapping
+    @Operation(
+        summary = "클래스 등록/수정 API",
+        description = "클래스 신규 등록 또는 수정. classId가 존재하면 수정, 없으면 신규 등록",
+        parameters = {
+            @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰")
+        },
+        responses =
+            {
+                @ApiResponse(
+                    responseCode = "200", description = "클래스 등록 or 수정",
+                    content = @Content(mediaType = "application/json",
+                        schema = @Schema(example =
+                            """
+                                    {
+                                        "code": 200,
+                                        "status": "success",
+                                        "data": "클래스 처리 완료"
+                                    }
+                                """
+                        )
+                    )
+                )
+            })
+    public ResponseEntity<?> createOrUpdateOneDayClass(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
+        @Parameter(name = "NewClassDto", description = "신규 or 수정 클래스 정보") @RequestBody NewClassDto newClassDto) {
+        String userUuid = principal.getName();
+
+        classService.createOrUpdateOneDayClass(userUuid, newClassDto);
+
+        return ResponseUtil.success("클래스 처리 완료");
+    }
+
     @GetMapping("/category/{categoryId}")
     @Operation(summary = "카테고리 클래스 조회 API", description = "카테고리마다 존재하는 클래스 조회 API",
         responses = {
@@ -57,7 +92,6 @@ public class ClassController {
         @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최신순, favorite : 찜순, expensive : 가격높은순, cheap : 가격낮은순")
         @RequestParam(name = "sort", required = false) String sort) {
         String userUuid = principal != null ? principal.getName() : null;
-        // TODO 주소 동까지 나오도록 수정 필요함
         return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort), userUuid));
     }
 

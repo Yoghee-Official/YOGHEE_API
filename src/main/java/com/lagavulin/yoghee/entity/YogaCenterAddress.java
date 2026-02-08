@@ -69,10 +69,6 @@ public class YogaCenterAddress {
     @Schema(description = "수련 장소명", example = "정환요가원")
     private String name;
 
-    @Column(name = "DESC")
-    @Schema(description = "상세 위치 설명", example = "좌회전 후 첫번째 건물 3층")
-    private String description;
-
     @Column(name = "USER_UUID")
     private String userUuid;
 

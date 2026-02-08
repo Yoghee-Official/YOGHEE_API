@@ -184,7 +184,7 @@ public class MyPageService {
                                                    .totalHour(formatHours(Math.max(0, totalMinutes / 60)))
                                                    .grade(getGrade(totalMinutes))
                                                    .level(getLevel(totalMinutes))
-                                                   .monthlyCategory(categoryInfo != null ? categoryInfo.getCategoryName() : null)
+                                                   .monthlyCategory(categoryInfo != null ? categoryInfo.getCategoryName() : "없음")
                                                    .monthlyCategoryCount(categoryInfo != null ? categoryInfo.getCount() : 0L)
                                                    .build()
                         )
