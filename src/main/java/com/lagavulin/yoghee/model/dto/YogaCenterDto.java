@@ -1,5 +1,7 @@
 package com.lagavulin.yoghee.model.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -26,9 +28,12 @@ public class YogaCenterDto {
 
     @Schema(description = "찜 수", example = "15000")
     private Number favoriteCount;
-    
+
     @Schema(description = "사용자 찜여부", example = "true or false")
     private Boolean isFavorite;
+
+    @Schema(description = "편의시설/제공물품 ID 목록", example = "[\"amenity-1\", \"amenity-2\"]")
+    private List<String> amenityIds;
 
     public YogaCenterDto(String centerId, String address, String name, String thumbnail,
         Number favoriteCount, Boolean isFavorite) {

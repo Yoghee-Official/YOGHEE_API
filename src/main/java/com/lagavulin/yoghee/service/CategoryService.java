@@ -1,8 +1,10 @@
 package com.lagavulin.yoghee.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.lagavulin.yoghee.entity.Category;
+import com.lagavulin.yoghee.model.dto.CodeInfoDto;
 import com.lagavulin.yoghee.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,5 +25,12 @@ public class CategoryService {
 
     public List<Category> getMainDisplay(String type) {
         return categoryRepository.findAllByTypeAndMainDisplayEquals(type, "Y");
+    }
+
+    public List<CodeInfoDto> getAllCategories() {
+        return categoryRepository.findAll()
+                                 .stream()
+                                 .map(c -> new CodeInfoDto(c.getCategoryId(), c.getName()))
+                                 .collect(Collectors.toList());
     }
 }

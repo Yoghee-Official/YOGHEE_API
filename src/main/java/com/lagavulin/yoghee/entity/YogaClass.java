@@ -31,24 +31,20 @@ public class YogaClass {
 
     private String type;
 
-    private int price;
+    private Long price;
+
+    @Column(name = "DISCOUNT_PRICE")
+    private Long discountPrice;
+
+    @Column(name = "DISCOUNT_RATE")
+    private Long discountRate;
 
     @Column(name = "`DESC`")
     private String description;
 
+    // 기존 CENTER_ID 유지 (하위 호환성)
     @Column(name = "CENTER_ID")
     private String centerId;
-
-    @Column(name = "ADDRESS_ID")
-    private String addressId;
-
-    @OneToOne
-    @JoinColumn(name = "ADDRESS_ID", insertable = false, updatable = false)
-    private YogaCenterAddress centerAddress;
-
-    // DB 컬럼에 직접 저장 (YogaCenterAddress의 fullAddress 값)
-    @Column(name = "ADDRESS")
-    private String address;
 
     @Column(name = "MAIN_DISPLAY")
     private String mainDisplay;
@@ -67,8 +63,10 @@ public class YogaClass {
         joinColumns = @JoinColumn(name = "CLASS_ID"),
         inverseJoinColumns = @JoinColumn(name = "CATEGORY_ID")
     )
+    @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "yogaClass", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ClassFeature> features = new ArrayList<>();
 }
