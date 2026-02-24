@@ -39,7 +39,7 @@ public interface UserClassScheduleRepository extends JpaRepository<UserClassSche
                 ADDTIME(cs.SPECIFIC_DATE, cs.START_TIME),
                 cs.DAY_OF_WEEK,
                 c.THUMBNAIL,
-                c.ADDRESS,
+                center.FULL_ADDRESS,
                 (SELECT COALESCE(SUM(u.ATTENDEE_COUNT), 0)
                  FROM USER_CLASS_SCHEDULE u 
                  WHERE u.SCHEDULE_ID = cs.SCHEDULE_ID),
@@ -50,6 +50,7 @@ public interface UserClassScheduleRepository extends JpaRepository<UserClassSche
             FROM USER_CLASS_SCHEDULE ucs
             JOIN CLASS_SCHEDULE cs ON ucs.SCHEDULE_ID = cs.SCHEDULE_ID
             JOIN CLASS c ON cs.CLASS_ID = c.CLASS_ID
+            LEFT JOIN CENTER center ON c.CENTER_ID = center.CENTER_ID
             WHERE ucs.USER_UUID = :userUuid
               AND cs.SPECIFIC_DATE BETWEEN :startDate AND :endDate
             ORDER BY DATE(cs.SPECIFIC_DATE), TIME(cs.START_TIME)

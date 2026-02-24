@@ -42,7 +42,4 @@ public class NewScheduleDto {
 
     @Schema(description = "스케쥴 이름", example = "아침 요가 스트레칭", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
-
-    @Schema(description = "카테고리 ID 리스트", example = "[\"1\", \"3\"]")
-    private List<String> categoryIds;
 }

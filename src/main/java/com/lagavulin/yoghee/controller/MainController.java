@@ -5,13 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.lagavulin.yoghee.entity.Category;
+import com.lagavulin.yoghee.model.dto.CodeListDto;
 import com.lagavulin.yoghee.model.dto.MainApiDto;
 import com.lagavulin.yoghee.model.dto.YogaCenterDto;
 import com.lagavulin.yoghee.model.dto.YogaClassDto;
 import com.lagavulin.yoghee.model.dto.YogaReviewDto;
+import com.lagavulin.yoghee.service.AmenityService;
 import com.lagavulin.yoghee.service.CategoryService;
 import com.lagavulin.yoghee.service.CenterService;
 import com.lagavulin.yoghee.service.ClassService;
+import com.lagavulin.yoghee.service.FeatureService;
 import com.lagavulin.yoghee.service.LayoutService;
 import com.lagavulin.yoghee.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,8 +42,10 @@ public class MainController {
     private final ClassService classService;
     private final CenterService centerService;
     private final CategoryService categoryService;
+    private final FeatureService featureService;
+    private final AmenityService amenityService;
 
-    @GetMapping("/")
+    @GetMapping
     @Operation(summary = "메인 API", description = "메인화면 정보 조회 API",
         responses = {
             @ApiResponse(responseCode = "200", description = "로그인 비로그인",
@@ -113,5 +118,22 @@ public class MainController {
         return "R".equals(type)
             ? centerService.getNewSignUpTopNCenterSinceStartDate(type, 10, userUuid)
             : null;
+    }
+
+    @GetMapping("/codes")
+    @Operation(summary = "코드 목록 API", description = "카테고리 / 특징(Feature) / 편의시설(Amenity) 전체 목록 조회 (인증 불필요)",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "코드 목록 조회 성공",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = CodeListDto.class)
+                )
+            )
+        })
+    public ResponseEntity<?> getCodeList() {
+        return ResponseUtil.success(CodeListDto.builder()
+                                               .categories(categoryService.getAllCategories())
+                                               .features(featureService.getAllFeatures())
+                                               .amenities(amenityService.getAllAmenities())
+                                               .build());
     }
 }

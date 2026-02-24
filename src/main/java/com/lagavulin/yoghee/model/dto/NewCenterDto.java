@@ -1,14 +1,10 @@
-package com.lagavulin.yoghee.entity;
+package com.lagavulin.yoghee.model.dto;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,17 +16,22 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "CENTER_ADDRESS")
-public class YogaCenterAddress {
+public class NewCenterDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ADDRESS_ID")
-    @Schema(description = "주소정보 PK(UUID)", example = "adf1234e-ab12-cd34-ef56-abcdef")
-    private String addressId;
+    @Schema(description = "클래스 ID (수정시에만 입력)", example = "class-1234abcd")
+    private String centerId;
 
-    @Column
+    @Schema(description = "요가원 이름", example = "힐링 요가 센터", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String name;
+
+    @Schema(description = "요가원 설명", example = "도심 속에서 마음과 몸의 힐링을 찾는 요가 센터입니다.")
+    private String description;
+
+    @Schema(description = "썸네일 이미지 URL", example = "https://example.com/thumbnail.jpg")
+    private String thumbnail;
+
+    private String masterId;
+
     @Schema(description = "시/도", example = "서울")
     private String depth1;
 
@@ -62,16 +63,7 @@ public class YogaCenterAddress {
     @Schema(description = "전체 주소", example = "서울 강남구 테헤란로 212 802호")
     private String fullAddress;
 
-    private Double latitude;
-
-    private Double longitude;
-
-    @Schema(description = "수련 장소명", example = "정환요가원")
-    private String name;
-
-    @Column(name = "USER_UUID")
-    private String userUuid;
-
-    @Column(name = "CREATED_AT")
-    private Date createdAt;
+    @Schema(description = "제공물품/편의시설 ID 목록", example = "[\"1\", \"5\"]")
+    @Builder.Default
+    private List<String> amenityIds = new ArrayList<>();
 }

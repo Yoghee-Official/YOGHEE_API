@@ -20,11 +20,11 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
 
     @Query(value = """
         SELECT new com.lagavulin.yoghee.model.dto.YogaClassDto(
-                c.classId, c.name, c.type, ca.fullAddress, s.scheduleId, s.startTime, s.endTime)
+                c.classId, c.name, c.type, COALESCE(center.fullAddress, ''), s.scheduleId, s.startTime, s.endTime)
         FROM YogaClass c
         INNER JOIN YogaClassMember m ON c.classId = m.classId
         INNER JOIN YogaClassSchedule s ON c.classId = s.classId
-        LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
+        LEFT JOIN YogaCenter center ON c.centerId = center.centerId
         WHERE m.userUuid = :userUuid
           AND (s.specificDate = CURDATE() OR s.dayOfWeek = FUNCTION('DAYOFWEEK', CURRENT_DATE))
         """)
@@ -99,7 +99,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -111,8 +111,8 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
             LEFT JOIN YogaClassMember m ON c.classId = m.classId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -122,7 +122,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                     AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY COUNT(DISTINCT m.userUuid) DESC
         """)
     List<CategoryClassDto> findMostJoinedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -134,7 +134,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -146,7 +146,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -158,7 +158,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                     AND i.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY COALESCE(AVG(r.rating), 0.0) DESC
         """)
     List<CategoryClassDto> findHighestRatedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -170,7 +170,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -182,7 +182,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -192,7 +192,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                     AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId
                 AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.createdAt DESC
         """)
     List<CategoryClassDto> findRecentClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -211,7 +211,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -223,7 +223,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -232,7 +232,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
                     AND alluf.type = 'CLASS'
             WHERE yc.categoryId = :categoryId AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY COUNT(DISTINCT alluf.userUuid) DESC
         """)
     List<CategoryClassDto> findMostFavoritedClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -241,7 +241,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
              SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -253,7 +253,6 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -261,8 +260,9 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                     AND myuf.userUuid = :userUuid
             LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
                     AND alluf.type = 'CLASS'
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             WHERE yc.categoryId = :categoryId AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price DESC
         """)
     List<CategoryClassDto> findMostExpensiveClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -271,7 +271,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
                 c.classId,
                 c.name,
-                ca.fullAddress,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
                 c.thumbnail,
                 c.masterId,
                 u.nickname,
@@ -283,7 +283,6 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             )
             FROM YogaClass c
             JOIN YogaClassCategory yc ON c.classId = yc.classId
-            LEFT JOIN YogaCenterAddress ca ON c.addressId = ca.addressId
             INNER JOIN AppUser u ON c.masterId = u.uuid
             LEFT JOIN YogaClassReview r ON c.classId = r.classId
             LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
@@ -291,8 +290,9 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                     AND myuf.userUuid = :userUuid
             LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
                     AND alluf.type = 'CLASS'
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
             WHERE yc.categoryId = :categoryId AND c.type = :type
-            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price, ca.fullAddress
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
             ORDER BY c.price ASC
         """)
     List<CategoryClassDto> findCheapestClassByTypeAndCategoryId(String type, String categoryId, String userUuid);
@@ -320,28 +320,6 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             GROUP BY c.CLASS_ID, c.NAME, c.THUMBNAIL, c.MASTER_ID, u.NICKNAME
         """, nativeQuery = true)
     List<Object[]> findUserFavoriteClassesRaw(String userUuid);
-
-    @Query(value = """
-            SELECT
-                c.CLASS_ID,
-                c.NAME,
-                c.THUMBNAIL,
-                COALESCE(ca.FULL_ADDRESS, ''),
-                COUNT(DISTINCT alluf.USER_UUID),
-                (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
-                 FROM CLASS_CATEGORY cc
-                 JOIN CATEGORY cat ON cc.CATEGORY_ID = cat.CATEGORY_ID
-                 WHERE cc.CLASS_ID = c.CLASS_ID)
-            FROM CLASS c
-            INNER JOIN USER_FAVORITE uf ON c.CLASS_ID = uf.ID AND uf.TYPE = 'CLASS'
-            LEFT JOIN USER_FAVORITE alluf ON alluf.ID = c.CLASS_ID AND alluf.TYPE = 'CLASS'
-            LEFT JOIN YOGA_CENTER_ADDRESS ca ON c.ADDRESS_ID = ca.ADDRESS_ID
-            WHERE uf.USER_UUID = :userUuid
-              AND uf.TYPE = 'CLASS'
-              AND c.TYPE = 'R'
-            GROUP BY c.CLASS_ID, c.NAME, c.THUMBNAIL, ca.FULL_ADDRESS
-        """, nativeQuery = true)
-    List<Object[]> findUserFavoriteRegularClassesRaw(String userUuid);
 
     // === 지도자 관련 쿼리 ===
 
@@ -395,7 +373,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                 cs.SPECIFIC_DATE,
                 cs.DAY_OF_WEEK,
                 c.THUMBNAIL,
-                c.ADDRESS,
+                CONCAT(center.DEPTH1, ' ', center.DEPTH2, ' ', center.DEPTH3),
                 COALESCE(SUM(ucs.ATTENDEE_COUNT), 0),
                 (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
                  FROM CLASS_CATEGORY cc
@@ -404,9 +382,10 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             FROM CLASS c
             JOIN CLASS_SCHEDULE cs ON c.CLASS_ID = cs.CLASS_ID
             LEFT JOIN USER_CLASS_SCHEDULE ucs ON cs.SCHEDULE_ID = ucs.SCHEDULE_ID
+            LEFT JOIN CENTER center ON c.CENTER_ID = center.CENTER_ID
             WHERE c.MASTER_ID = :masterId
               AND cs.SPECIFIC_DATE BETWEEN :todayStart AND :todayEnd
-            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, c.ADDRESS
+            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, center.FULL_ADDRESS
             ORDER BY cs.SPECIFIC_DATE, cs.START_TIME
         """, nativeQuery = true)
     List<Object[]> findTodayClassesByMasterIdRaw(
@@ -425,7 +404,7 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
                 cs.SPECIFIC_DATE,
                 DAYOFWEEK(cs.SPECIFIC_DATE) - 1,
                 c.THUMBNAIL,
-                c.ADDRESS,
+                CONCAT(center.DEPTH1, ' ', center.DEPTH2, ' ', center.DEPTH3),
                 COALESCE(SUM(ucs.ATTENDEE_COUNT), 0),
                 (SELECT GROUP_CONCAT(DISTINCT cat.NAME ORDER BY cat.NAME SEPARATOR ', ')
                  FROM CLASS_CATEGORY cc
@@ -434,9 +413,10 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
             FROM CLASS c
             JOIN CLASS_SCHEDULE cs ON c.CLASS_ID = cs.CLASS_ID
             LEFT JOIN USER_CLASS_SCHEDULE ucs ON cs.SCHEDULE_ID = ucs.SCHEDULE_ID
+            LEFT JOIN CENTER center ON c.CENTER_ID = center.CENTER_ID
             WHERE c.MASTER_ID = :masterId
               AND cs.SPECIFIC_DATE BETWEEN :startDate AND :endDate
-            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, c.ADDRESS
+            GROUP BY c.CLASS_ID, c.NAME, cs.SPECIFIC_DATE, c.THUMBNAIL, center.FULL_ADDRESS
             ORDER BY cs.SPECIFIC_DATE, cs.START_TIME
         """, nativeQuery = true)
     List<Object[]> findSchedulesByMasterIdBetweenDatesRaw(

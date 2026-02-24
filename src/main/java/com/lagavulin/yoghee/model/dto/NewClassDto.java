@@ -25,11 +25,11 @@ public class NewClassDto {
     @Schema(description = "클래스 설명", example = "하루를 상쾌하게 시작하는 아침 요가 스트레칭 클래스입니다.")
     private String description;
 
-    @Schema(description = "요가원 주소 ID", example = "adf1234e-ab12-cd34-ef56-abcdef", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String addressId;
+    @Schema(description = "요가원 ID", example = "center-5678efgh", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String centerId;
 
     @Schema(description = "특징ID (최대 3개)", example = "1 : 기본 수련 경험이 있고 흐름 있는 동작\n2 : 허리·골반 주변 이완 및 안정\n3 : 요가 입문자, 기본 동작과 호흡 설명 중심\n4 : 몸이 뻣뻣하거나 스트레칭 위주 수련\n5 : 중심 잡기, 안정성, 자세 정렬에 집중하는 수련\n6 : 호흡·이완 중심, 심리적 안정")
-    private List<String> featuresId;
+    private List<String> featureIds;
 
     @Schema(description = "스케쥴 정보")
     private List<NewScheduleDto> schedules;
@@ -39,4 +39,13 @@ public class NewClassDto {
 
     @Schema(description = "가격(원)", example = "25000", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long price;
+
+    @Schema(description = "할인 가격(원)", example = "5000")
+    private Long discountPrice;
+
+    @Schema(description = "할인율(%)", example = "20")
+    private Long discountRate;
+
+    @Schema(description = "카테고리 ID 리스트", example = "[\"1\", \"3\"]")
+    private List<String> categoryIds;
 }

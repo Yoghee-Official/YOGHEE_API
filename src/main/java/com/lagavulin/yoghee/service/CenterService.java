@@ -11,13 +11,13 @@ import java.util.Set;
 import com.lagavulin.yoghee.entity.UserCategory;
 import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaCenter;
-import com.lagavulin.yoghee.entity.YogaCenterAddress;
-import com.lagavulin.yoghee.model.dto.CenterAddressDto;
+import com.lagavulin.yoghee.entity.YogaCenterAmenity;
+import com.lagavulin.yoghee.model.dto.NewCenterDto;
 import com.lagavulin.yoghee.model.dto.YogaCenterDto;
 import com.lagavulin.yoghee.model.enums.TargetType;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
 import com.lagavulin.yoghee.repository.UserFavoriteRepository;
-import com.lagavulin.yoghee.repository.YogaCenterAddressRepository;
+import com.lagavulin.yoghee.repository.YogaCenterAmenityRepository;
 import com.lagavulin.yoghee.repository.YogaCenterRepository;
 import com.lagavulin.yoghee.service.kakao.KakaoLocalService;
 import com.lagavulin.yoghee.util.AddressParser;
@@ -33,7 +33,7 @@ public class CenterService {
     private final YogaCenterRepository yogaCenterRepository;
     private final UserCategoryRepository userCategoryRepository;
     private final UserFavoriteRepository userFavoriteRepository;
-    private final YogaCenterAddressRepository yogaCenterAddressRepository;
+    private final YogaCenterAmenityRepository yogaCenterAmenityRepository;
     private final KakaoLocalService kakaoLocalService;
 
     public List<YogaCenterDto> getNewSignUpTopNCenterSinceStartDate(String type, int n, String userUuid) {
@@ -85,66 +85,95 @@ public class CenterService {
         }
     }
 
-    public List<YogaCenterAddress> findAddressByUserUuid(String name) {
-        return yogaCenterAddressRepository.findAddressByUserUuid(name);
+    public List<YogaCenter> findCenterByUserUuid(String userUuid) {
+        return yogaCenterRepository.findByMasterId(userUuid);
     }
 
-    public List<YogaCenterAddress> searchByKeyword(String keyword) {
-        return yogaCenterAddressRepository.searchByKeyword(keyword);
+    public YogaCenterDto findCenterById(String centerId, String userUuid) {
+        // 단일 요가원 조회를 위해 기존 쿼리 메소드 재사용
+        Set<String> centerIds = Set.of(centerId);
+        List<YogaCenterDto> results = yogaCenterRepository.findWithReviewStatsByCenterIds(centerIds, userUuid);
+
+        if (results.isEmpty()) {
+            return null;
+        }
+
+        YogaCenterDto center = results.get(0);
+        // amenity 정보 추가
+        center.setAmenityIds(yogaCenterAmenityRepository.findAmenityIdsByCenterId(centerId));
+
+        return center;
     }
 
-    public void saveCenterAddress(String userUuid, CenterAddressDto dto) {
-        YogaCenterAddress address;
+    public void saveCenter(String userUuid, NewCenterDto dto) {
+        YogaCenter yogaCenter;
 
-        // addressId가 있으면 기존 주소 수정
-        if (StringUtils.hasText(dto.getAddressId())) {
-            address = yogaCenterAddressRepository.findById(dto.getAddressId())
-                                                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주소입니다."));
+        // centerId가 있으면 기존 센터 수정
+        if (StringUtils.hasText(dto.getCenterId())) {
+            yogaCenter = yogaCenterRepository.findById(dto.getCenterId())
+                                             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 센터입니다."));
 
             // 소유자 확인
-            if (!address.getUserUuid().equals(userUuid)) {
-                throw new IllegalArgumentException("해당 주소를 수정할 권한이 없습니다.");
+            if (!yogaCenter.getMasterId().equals(userUuid)) {
+                throw new IllegalArgumentException("해당 센터를 수정할 권한이 없습니다.");
             }
+            yogaCenterAmenityRepository.deleteByCenterId(dto.getCenterId());
         } else {
             // 신규 등록
-            address = YogaCenterAddress.builder()
-                                       .userUuid(userUuid)
-                                       .createdAt(new Date())
-                                       .build();
+            yogaCenter = YogaCenter.builder()
+                                   .masterId(userUuid)
+                                   .createdAt(new Date())
+                                   .build();
         }
 
-        AddressParser.ParsedAddress parsed = AddressParser.parse(dto.getJibunAddress());
+        // 주소 파싱 - 지번주소 또는 도로명주소 사용
+        String addressToParse = StringUtils.hasText(dto.getJibunAddress())
+            ? dto.getJibunAddress()
+            : dto.getRoadAddress();
+
+        AddressParser.ParsedAddress parsed = AddressParser.parse(addressToParse);
 
         // 기본 정보 설정
-        address.setDepth1(parsed.getDepth1());
-        address.setDepth2(parsed.getDepth2());
-        address.setDepth3(parsed.getDepth3());
-        address.setRoadAddress(dto.getRoadAddress());
-        address.setJibunAddress(dto.getJibunAddress());
-        address.setZonecode(dto.getZonecode());
-        address.setAddressDetail(dto.getAddressDetail());
-        address.setFullAddress(dto.getRoadAddress() + " " + dto.getAddressDetail());
-        address.setName(dto.getName());
+        yogaCenter.setName(dto.getName());
+        yogaCenter.setDescription(dto.getDescription());
+        yogaCenter.setThumbnail(dto.getThumbnail());
 
-        // 위도/경도 설정
-        // 1. DTO에서 제공된 좌표 사용
-        if (dto.getLatitude() != null && dto.getLongitude() != null) {
-            address.setLatitude(dto.getLatitude());
-            address.setLongitude(dto.getLongitude());
-        } else {
-            // 2. DTO에 좌표가 없으면 Kakao API로 주소 검색하여 좌표 얻기
-            double[] coordinates = kakaoLocalService.getCoordinatesFromAddresses(
-                dto.getRoadAddress(),
-                dto.getJibunAddress()
-            );
+        // 주소 정보 설정
+        yogaCenter.setDepth1(parsed.getDepth1());
+        yogaCenter.setDepth2(parsed.getDepth2());
+        yogaCenter.setDepth3(parsed.getDepth3());
+        yogaCenter.setRoadAddress(dto.getRoadAddress());
+        yogaCenter.setJibunAddress(dto.getJibunAddress());
+        yogaCenter.setZonecode(dto.getZonecode());
+        yogaCenter.setAddressDetail(dto.getAddressDetail());
 
-            if (coordinates != null) {
-                address.setLatitude(coordinates[0]); // latitude
-                address.setLongitude(coordinates[1]); // longitude
-            }
-            // 좌표를 가져오지 못한 경우 null로 저장됨
+        // fullAddress 설정
+        String baseAddress = StringUtils.hasText(dto.getRoadAddress())
+            ? dto.getRoadAddress()
+            : dto.getJibunAddress();
+        String fullAddress = StringUtils.hasText(dto.getAddressDetail())
+            ? baseAddress + " " + dto.getAddressDetail()
+            : baseAddress;
+        yogaCenter.setFullAddress(fullAddress);
+
+        // 위도/경도 설정 - Kakao API로 주소 검색하여 좌표 얻기
+        double[] coordinates = kakaoLocalService.getCoordinatesFromAddresses(
+            dto.getRoadAddress(),
+            dto.getJibunAddress()
+        );
+
+        if (coordinates != null) {
+            yogaCenter.setLatitude(coordinates[0]); // latitude
+            yogaCenter.setLongitude(coordinates[1]); // longitude
         }
 
-        yogaCenterAddressRepository.save(address);
+        yogaCenterRepository.save(yogaCenter);
+        yogaCenterAmenityRepository.saveAll(
+            dto.getAmenityIds().stream()
+               .map(amenityId -> YogaCenterAmenity.builder()
+                                                  .centerId(yogaCenter.getCenterId())
+                                                  .amenityId(amenityId)
+                                                  .build())
+               .toList());
     }
 }
