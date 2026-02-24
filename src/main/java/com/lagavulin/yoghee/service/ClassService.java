@@ -42,10 +42,8 @@ public class ClassService {
     private final ImageRepository imageRepository;
     private final UserClassScheduleRepository userClassScheduleRepository;
     private final YogaClassScheduleRepository yogaClassScheduleRepository;
-    private final CategoryRepository categoryRepository;
     private final FeatureRepository featureRepository;
-    private final YogaCenterAddressRepository yogaCenterAddressRepository;
-    private final ScheduleCategoryRepository scheduleCategoryRepository;
+    private final YogaClassCategoryRepository yogaClassCategoryRepository;
 
     /**
      * 오늘 스케줄 조회 <br> /api/main/ - [로그인] data.todaySchedule
@@ -265,11 +263,21 @@ public class ClassService {
 
     @Transactional
     public void createOrUpdateOneDayClass(String userUuid, NewClassDto newClassDto) {
+        // discountPrice와 discountRate 중 하나만 값을 가져야 함 (둘 다 값이 있으면 400)
+        boolean hasDiscountPrice = newClassDto.getDiscountPrice() != null && newClassDto.getDiscountPrice() != 0;
+        boolean hasDiscountRate = newClassDto.getDiscountRate() != null && newClassDto.getDiscountRate() != 0;
+        if (hasDiscountPrice && hasDiscountRate) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "할인금액 또는 할인률 중 하나만 입력해야 합니다.");
+        }
+
         if (newClassDto.getClassId() != null) {
             // 수정 로직
             updateOneDayClass(userUuid, newClassDto);
         } else {
             // 생성 로직
+            if (newClassDto.getCenterId() == null || newClassDto.getCenterId().isBlank()) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "요가원 ID(centerId)는 필수입니다.");
+            }
             createOneDayClass(userUuid, newClassDto);
         }
     }
@@ -278,22 +286,16 @@ public class ClassService {
      * 하루수련 클래스 생성
      */
     private void createOneDayClass(String userUuid, NewClassDto newClassDto) {
-        // 0. addressId로 주소 조회
-        String fullAddress = null;
-        if (newClassDto.getAddressId() != null) {
-            fullAddress = yogaCenterAddressRepository.findById(newClassDto.getAddressId())
-                                                     .map(addr -> addr.getFullAddress())
-                                                     .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND, "주소를 찾을 수 없습니다."));
-        }
-
         // 1. YogaClass 생성
+
         YogaClass yogaClass = YogaClass.builder()
                                        .name(newClassDto.getName())
+                                       .centerId(newClassDto.getCenterId())
                                        .type("O") // 하루수련
                                        .description(newClassDto.getDescription())
-                                       .addressId(newClassDto.getAddressId())
-                                       .address(fullAddress)  // fullAddress 설정
-                                       .price(newClassDto.getPrice().intValue())
+                                       .price(newClassDto.getPrice())
+                                       .discountPrice(newClassDto.getDiscountPrice())
+                                       .discountRate(newClassDto.getDiscountRate())
                                        .masterId(userUuid)
                                        .mainDisplay("N")
                                        .createdAt(new Date())
@@ -309,17 +311,22 @@ public class ClassService {
         YogaClass savedClass = yogaClassRepository.save(yogaClass);
         log.info("Created YogaClass: {}", savedClass.getClassId());
 
-        // 3. 이미지 저장
+        // 3. 클래스 카테고리 저장
+        if (newClassDto.getCategoryIds() != null && !newClassDto.getCategoryIds().isEmpty()) {
+            saveClassCategories(savedClass.getClassId(), newClassDto.getCategoryIds());
+        }
+
+        // 4. 이미지 저장
         if (newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()) {
             saveClassImages(savedClass.getClassId(), newClassDto.getImages());
         }
 
-        // 4. 특징 저장
-        if (newClassDto.getFeaturesId() != null && !newClassDto.getFeaturesId().isEmpty()) {
-            saveClassFeatures(savedClass, newClassDto.getFeaturesId());
+        // 5. 특징 저장
+        if (newClassDto.getFeatureIds() != null && !newClassDto.getFeatureIds().isEmpty()) {
+            saveClassFeatures(savedClass, newClassDto.getFeatureIds());
         }
 
-        // 5. 스케줄 저장 (스케줄별 카테고리도 함께 저장)
+        // 6. 스케줄 저장
         if (newClassDto.getSchedules() != null && !newClassDto.getSchedules().isEmpty()) {
             saveClassSchedules(savedClass.getClassId(), newClassDto.getSchedules());
         }
@@ -338,23 +345,16 @@ public class ClassService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "해당 클래스를 수정할 권한이 없습니다.");
         }
 
-        // 2-1. addressId로 주소 조회 (주소가 변경된 경우)
-        String fullAddress = existingClass.getAddress(); // 기본값은 기존 주소
-        if (newClassDto.getAddressId() != null && !newClassDto.getAddressId().equals(existingClass.getAddressId())) {
-            fullAddress = yogaCenterAddressRepository.findById(newClassDto.getAddressId())
-                                                     .map(addr -> addr.getFullAddress())
-                                                     .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "주소를 찾을 수 없습니다."));
-        }
-
         // 3. 클래스 정보 업데이트
         YogaClass updatedClass = YogaClass.builder()
                                           .classId(existingClass.getClassId())
+                                          .centerId(existingClass.getCenterId()) // 기존 CENTER_ID 유지 (하위 호환성)
                                           .name(newClassDto.getName())
                                           .type(existingClass.getType())
                                           .description(newClassDto.getDescription())
-                                          .addressId(newClassDto.getAddressId())
-                                          .address(fullAddress)  // fullAddress 설정
-                                          .price(newClassDto.getPrice().intValue())
+                                          .price(newClassDto.getPrice())
+                                          .discountPrice(newClassDto.getDiscountPrice())
+                                          .discountRate(newClassDto.getDiscountRate())
                                           .masterId(existingClass.getMasterId())
                                           .mainDisplay(existingClass.getMainDisplay())
                                           .thumbnail(newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()
@@ -368,18 +368,23 @@ public class ClassService {
         YogaClass savedClass = yogaClassRepository.save(updatedClass);
         log.info("Updated YogaClass: {}", savedClass.getClassId());
 
-        // 4. 기존 이미지 삭제 후 새 이미지 저장
+        // 4. 클래스 카테고리 업데이트 (기존 카테고리 삭제 후 새로 저장)
+        if (newClassDto.getCategoryIds() != null && !newClassDto.getCategoryIds().isEmpty()) {
+            saveClassCategories(savedClass.getClassId(), newClassDto.getCategoryIds());
+        }
+
+        // 5. 기존 이미지 삭제 후 새 이미지 저장
         imageRepository.deleteByTypeAndTargetId(TargetType.CLASS, savedClass.getClassId());
         if (newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()) {
             saveClassImages(savedClass.getClassId(), newClassDto.getImages());
         }
 
-        // 5. 특징 업데이트 (기존 삭제는 orphanRemoval로 자동 처리)
-        if (newClassDto.getFeaturesId() != null && !newClassDto.getFeaturesId().isEmpty()) {
-            saveClassFeatures(savedClass, newClassDto.getFeaturesId());
+        // 6. 특징 업데이트 (기존 삭제는 orphanRemoval로 자동 처리)
+        if (newClassDto.getFeatureIds() != null && !newClassDto.getFeatureIds().isEmpty()) {
+            saveClassFeatures(savedClass, newClassDto.getFeatureIds());
         }
 
-        // 6. 스케줄 업데이트 (기존 것은 유지, 새로운 것만 추가, 스케줄별 카테고리도 함께 처리)
+        // 7. 스케줄 업데이트 (기존 것은 유지, 새로운 것만 추가)
         if (newClassDto.getSchedules() != null && !newClassDto.getSchedules().isEmpty()) {
             saveClassSchedules(savedClass.getClassId(), newClassDto.getSchedules());
         }
@@ -448,14 +453,10 @@ public class ClassService {
                                                                   .maxCapacity(scheduleDto.getMaxCapacity())
                                                                   .content(scheduleDto.getName())
                                                                   .build();
-                    YogaClassSchedule savedSchedule = yogaClassScheduleRepository.save(schedule);
-
-                    // 스케줄 카테고리 저장
-                    if (scheduleDto.getCategoryIds() != null && !scheduleDto.getCategoryIds().isEmpty()) {
-                        saveScheduleCategories(savedSchedule.getScheduleId(), scheduleDto.getCategoryIds());
-                    }
+                    yogaClassScheduleRepository.save(schedule);
                 }
             }
+
         }
         log.info("Saved schedules for class {}", classId);
     }
@@ -487,26 +488,21 @@ public class ClassService {
 
         yogaClassScheduleRepository.save(updatedSchedule);
 
-        // 기존 스케줄 카테고리 삭제 후 새로 저장
-        if (scheduleDto.getCategoryIds() != null && !scheduleDto.getCategoryIds().isEmpty()) {
-            scheduleCategoryRepository.deleteByScheduleId(existingSchedule.getScheduleId());
-            saveScheduleCategories(existingSchedule.getScheduleId(), scheduleDto.getCategoryIds());
-        }
-
         log.info("Updated schedule: {}", updatedSchedule.getScheduleId());
     }
 
     /**
-     * 스케줄 카테고리 저장
+     * 클래스 카테고리 저장
      */
-    private void saveScheduleCategories(String scheduleId, List<String> categoryIds) {
+    private void saveClassCategories(String classId, List<String> categoryIds) {
+        yogaClassCategoryRepository.deleteByClassId(classId);
         for (String categoryId : categoryIds) {
-            ScheduleCategory scheduleCategory = ScheduleCategory.builder()
-                                                                .scheduleId(scheduleId)
-                                                                .categoryId(categoryId)
-                                                                .build();
-            scheduleCategoryRepository.save(scheduleCategory);
+            YogaClassCategory classCategory = YogaClassCategory.builder()
+                                                               .classId(classId)
+                                                               .categoryId(categoryId)
+                                                               .build();
+            yogaClassCategoryRepository.save(classCategory);
         }
-        log.info("Saved {} categories for schedule {}", categoryIds.size(), scheduleId);
+        log.info("Saved {} categories for class {}", categoryIds.size(), classId);
     }
 }
