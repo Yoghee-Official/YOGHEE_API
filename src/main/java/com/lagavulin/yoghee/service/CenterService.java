@@ -12,9 +12,12 @@ import com.lagavulin.yoghee.entity.UserCategory;
 import com.lagavulin.yoghee.entity.UserFavorite;
 import com.lagavulin.yoghee.entity.YogaCenter;
 import com.lagavulin.yoghee.entity.YogaCenterAmenity;
+import com.lagavulin.yoghee.exception.BusinessException;
+import com.lagavulin.yoghee.exception.ErrorCode;
 import com.lagavulin.yoghee.model.dto.NewCenterDto;
 import com.lagavulin.yoghee.model.dto.YogaCenterDto;
 import com.lagavulin.yoghee.model.enums.TargetType;
+import com.lagavulin.yoghee.model.swagger.main.center.CenterBaseDto;
 import com.lagavulin.yoghee.repository.UserCategoryRepository;
 import com.lagavulin.yoghee.repository.UserFavoriteRepository;
 import com.lagavulin.yoghee.repository.YogaCenterAmenityRepository;
@@ -85,8 +88,26 @@ public class CenterService {
         }
     }
 
-    public List<YogaCenter> findCenterByUserUuid(String userUuid) {
-        return yogaCenterRepository.findByMasterId(userUuid);
+    public List<CenterBaseDto> findCenterByUserUuid(String userUuid) {
+        return yogaCenterRepository.findByMasterId(userUuid).stream()
+                                   .map(center -> CenterBaseDto.builder()
+                                                               .centerId(center.getCenterId())
+                                                               .name(center.getName())
+                                                               .address(center.getFullAddress())
+                                                               .createdAt(center.getCreatedAt())
+                                                               .build())
+                                   .toList();
+    }
+
+    public void deleteCenter(String centerId, String userUuid) {
+        YogaCenter center = yogaCenterRepository.findById(centerId)
+                                                .orElseThrow(() -> new BusinessException(ErrorCode.CENTER_NOT_FOUND, "해당 요가원을 찾을 수 없습니다."));
+
+        if (!center.getMasterId().equals(userUuid)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인이 등록한 요가원만 삭제할 수 있습니다.");
+        }
+
+        yogaCenterRepository.delete(center);
     }
 
     public YogaCenterDto findCenterById(String centerId, String userUuid) {
@@ -105,40 +126,39 @@ public class CenterService {
         return center;
     }
 
-    public void saveCenter(String userUuid, NewCenterDto dto) {
-        YogaCenter yogaCenter;
+    public void createCenter(String userUuid, NewCenterDto dto) {
+        YogaCenter yogaCenter = YogaCenter.builder()
+                                          .masterId(userUuid)
+                                          .createdAt(new Date())
+                                          .build();
+        applyDtoToCenter(yogaCenter, dto);
+        yogaCenterRepository.save(yogaCenter);
+        saveAmenities(yogaCenter.getCenterId(), dto);
+    }
 
-        // centerId가 있으면 기존 센터 수정
-        if (StringUtils.hasText(dto.getCenterId())) {
-            yogaCenter = yogaCenterRepository.findById(dto.getCenterId())
-                                             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 센터입니다."));
+    public void updateCenter(String userUuid, NewCenterDto dto) {
+        YogaCenter yogaCenter = yogaCenterRepository.findById(dto.getCenterId())
+                                                    .orElseThrow(() -> new BusinessException(ErrorCode.CENTER_NOT_FOUND, "해당 요가원을 찾을 수 없습니다."));
 
-            // 소유자 확인
-            if (!yogaCenter.getMasterId().equals(userUuid)) {
-                throw new IllegalArgumentException("해당 센터를 수정할 권한이 없습니다.");
-            }
-            yogaCenterAmenityRepository.deleteByCenterId(dto.getCenterId());
-        } else {
-            // 신규 등록
-            yogaCenter = YogaCenter.builder()
-                                   .masterId(userUuid)
-                                   .createdAt(new Date())
-                                   .build();
+        if (!yogaCenter.getMasterId().equals(userUuid)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인이 등록한 요가원만 수정할 수 있습니다.");
         }
 
-        // 주소 파싱 - 지번주소 또는 도로명주소 사용
+        yogaCenterAmenityRepository.deleteByCenterId(dto.getCenterId());
+        applyDtoToCenter(yogaCenter, dto);
+        yogaCenterRepository.save(yogaCenter);
+        saveAmenities(dto.getCenterId(), dto);
+    }
+
+    private void applyDtoToCenter(YogaCenter yogaCenter, NewCenterDto dto) {
         String addressToParse = StringUtils.hasText(dto.getJibunAddress())
             ? dto.getJibunAddress()
             : dto.getRoadAddress();
-
         AddressParser.ParsedAddress parsed = AddressParser.parse(addressToParse);
 
-        // 기본 정보 설정
         yogaCenter.setName(dto.getName());
         yogaCenter.setDescription(dto.getDescription());
         yogaCenter.setThumbnail(dto.getThumbnail());
-
-        // 주소 정보 설정
         yogaCenter.setDepth1(parsed.getDepth1());
         yogaCenter.setDepth2(parsed.getDepth2());
         yogaCenter.setDepth3(parsed.getDepth3());
@@ -147,31 +167,29 @@ public class CenterService {
         yogaCenter.setZonecode(dto.getZonecode());
         yogaCenter.setAddressDetail(dto.getAddressDetail());
 
-        // fullAddress 설정
         String baseAddress = StringUtils.hasText(dto.getRoadAddress())
             ? dto.getRoadAddress()
             : dto.getJibunAddress();
-        String fullAddress = StringUtils.hasText(dto.getAddressDetail())
+        yogaCenter.setFullAddress(StringUtils.hasText(dto.getAddressDetail())
             ? baseAddress + " " + dto.getAddressDetail()
-            : baseAddress;
-        yogaCenter.setFullAddress(fullAddress);
+            : baseAddress);
 
-        // 위도/경도 설정 - Kakao API로 주소 검색하여 좌표 얻기
         double[] coordinates = kakaoLocalService.getCoordinatesFromAddresses(
-            dto.getRoadAddress(),
-            dto.getJibunAddress()
-        );
-
+            dto.getRoadAddress(), dto.getJibunAddress());
         if (coordinates != null) {
-            yogaCenter.setLatitude(coordinates[0]); // latitude
-            yogaCenter.setLongitude(coordinates[1]); // longitude
+            yogaCenter.setLatitude(coordinates[0]);
+            yogaCenter.setLongitude(coordinates[1]);
         }
+    }
 
-        yogaCenterRepository.save(yogaCenter);
+    private void saveAmenities(String centerId, NewCenterDto dto) {
+        if (dto.getAmenityIds() == null || dto.getAmenityIds().isEmpty()) {
+            return;
+        }
         yogaCenterAmenityRepository.saveAll(
             dto.getAmenityIds().stream()
                .map(amenityId -> YogaCenterAmenity.builder()
-                                                  .centerId(yogaCenter.getCenterId())
+                                                  .centerId(centerId)
                                                   .amenityId(amenityId)
                                                   .build())
                .toList());
