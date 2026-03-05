@@ -31,7 +31,7 @@ public class YogaClassScheduleDto {
     @Schema(description = "클래스 등록 이미지 URL", example = "https://image1_url")
     private String thumbnailUrl;
 
-    @Schema(description = "요가원 주소 (시 구 동까지 노출)", example = "서울시 강남구 역삼동")
+    @Schema(description = "요가원 주소 (시 구까지 노출)", example = "서울시 강남구")
     private String address;
 
     @Schema(description = "참석 인원 수", example = "23")
@@ -44,18 +44,6 @@ public class YogaClassScheduleDto {
     private List<String> categories;
 
     public YogaClassScheduleDto(String classId, String className, Date day, Long dayOfWeek,
-        String thumbnailUrl, String address, Long attendance) {
-        this.classId = classId;
-        this.className = className;
-        this.day = day;
-        this.dayOfWeek = dayOfWeek;
-        this.thumbnailUrl = thumbnailUrl;
-        this.address = address;
-        this.attendance = attendance;
-        this.isPast = day.before(new Date());
-    }
-
-    public YogaClassScheduleDto(String classId, String className, Date day, Long dayOfWeek,
         String thumbnailUrl, String address, Long attendance, String categoriesStr) {
         this.classId = classId;
         this.className = className;
@@ -65,8 +53,6 @@ public class YogaClassScheduleDto {
         this.address = address;
         this.attendance = attendance;
         this.isPast = day.before(new Date());
-        this.categories = (categoriesStr != null && !categoriesStr.isEmpty())
-            ? Arrays.asList(categoriesStr.split(", "))
-            : List.of();
+        this.categories = (categoriesStr != null && !categoriesStr.isEmpty()) ? Arrays.asList(categoriesStr.split(", ")) : List.of();
     }
 }
