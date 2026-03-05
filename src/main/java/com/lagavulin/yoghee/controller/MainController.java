@@ -4,7 +4,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.lagavulin.yoghee.entity.Category;
 import com.lagavulin.yoghee.model.dto.CodeListDto;
 import com.lagavulin.yoghee.model.dto.MainApiDto;
 import com.lagavulin.yoghee.model.dto.YogaCenterDto;
@@ -68,7 +67,6 @@ public class MainController {
         List<YogaCenterDto> interestedCenters = getInterestedCenters(type, userUuid);
         List<YogaClassDto> top10Class = getTop10Classes(type, userUuid);
         List<YogaCenterDto> top10Center = getTop10Centers(type, userUuid);
-        List<Category> categories = categoryService.getMainDisplay(type);
 
         return ResponseUtil.success(MainApiDto.builder()
                                               .layoutOrder(layoutService.getMainLayouts(type))
@@ -79,7 +77,6 @@ public class MainController {
                                               .top10Class(top10Class)
                                               .top10Center(top10Center)
                                               .newReview(newReviews)
-                                              .yogaCategory(categories)
                                               .build());
     }
 
@@ -120,7 +117,7 @@ public class MainController {
             : null;
     }
 
-    @GetMapping("/codes")
+    @GetMapping("/code")
     @Operation(summary = "코드 목록 API", description = "카테고리 / 특징(Feature) / 편의시설(Amenity) 전체 목록 조회 (인증 불필요)",
         responses = {
             @ApiResponse(responseCode = "200", description = "코드 목록 조회 성공",
