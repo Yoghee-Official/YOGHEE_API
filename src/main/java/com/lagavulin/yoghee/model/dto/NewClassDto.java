@@ -40,12 +40,43 @@ public class NewClassDto {
     @Schema(description = "가격(원)", example = "25000", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long price;
 
-    @Schema(description = "할인 가격(원)", example = "5000")
-    private Long discountPrice;
-
-    @Schema(description = "할인율(%)", example = "20")
-    private Long discountRate;
-
     @Schema(description = "카테고리 ID 리스트", example = "[\"1\", \"3\"]")
     private List<String> categoryIds;
+
+    @Schema(description = "가격/할인/예약안내/환불 정책")
+    private PolicyDto policy;
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PolicyDto {
+
+        @Schema(description = "할인 가격(원) - discountRate와 둘 중 하나만 입력", example = "5000")
+        private Long discountPrice;
+
+        @Schema(description = "할인율(%) - discountPrice와 둘 중 하나만 입력", example = "20")
+        private Long discountRate;
+
+        @Schema(description = "예약 시 안내사항 (준비물, 복장, 주의사항 등)", example = "편한 복장과 개인 매트를 지참해주세요.")
+        private String reservationNote;
+
+        @Schema(description = "환불 정책 목록 (hoursBeforeClass 오름차순 권장)")
+        private List<RefundPolicyDto> refundPolicies;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RefundPolicyDto {
+
+        @Schema(description = "수업 시작 몇 시간 전까지 취소 시 적용", example = "72")
+        private Integer hoursBeforeClass;
+
+        @Schema(description = "환불율(%) - 0이면 환불불가, 100이면 전액환불", example = "100")
+        private Integer refundRate;
+    }
 }

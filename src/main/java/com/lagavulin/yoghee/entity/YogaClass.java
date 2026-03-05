@@ -33,16 +33,9 @@ public class YogaClass {
 
     private Long price;
 
-    @Column(name = "DISCOUNT_PRICE")
-    private Long discountPrice;
-
-    @Column(name = "DISCOUNT_RATE")
-    private Long discountRate;
-
     @Column(name = "`DESC`")
     private String description;
 
-    // 기존 CENTER_ID 유지 (하위 호환성)
     @Column(name = "CENTER_ID")
     private String centerId;
 
@@ -69,4 +62,7 @@ public class YogaClass {
     @OneToMany(mappedBy = "yogaClass", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ClassFeature> features = new ArrayList<>();
+
+    @OneToOne(mappedBy = "yogaClass", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private ClassPolicy policy;
 }
