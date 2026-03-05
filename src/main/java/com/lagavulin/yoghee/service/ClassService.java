@@ -2,6 +2,7 @@ package com.lagavulin.yoghee.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ public class ClassService {
     private final YogaClassScheduleRepository yogaClassScheduleRepository;
     private final FeatureRepository featureRepository;
     private final YogaClassCategoryRepository yogaClassCategoryRepository;
+    private final ClassPolicyRepository classPolicyRepository;
 
     /**
      * 오늘 스케줄 조회 <br> /api/main/ - [로그인] data.todaySchedule
@@ -155,6 +157,85 @@ public class ClassService {
         return dtos;
     }
 
+    /**
+     * depth1(시/도) 기준 클래스 목록 조회 <br> /api/class/address/{depth1}
+     * <p>
+     * keyword 규칙: - 서울       → 서울 - 경기       → 경기, 인천 - 강원, 제주  → 단일 depth1 검색 - 경상       → 경북, 경남, 대구, 부산, 울산 - 전라       → 전북, 전남, 광주 - 충청       →
+     * 충북, 충남, 세종, 대전 - 기타       → 위 모든 지역 제외
+     */
+    public List<CategoryClassDto> getClassesByDepth1(String keyword, ClassSortType classSortType, String userUuid) {
+        // 기타: 모든 주요 권역 지역 목록 (NOT IN 용)
+        final List<String> ALL_MAIN_REGIONS = List.of(
+            "서울",                               // 서울
+            "경기", "인천",                       // 경기
+            "강원",                               // 강원
+            "제주",                               // 제주
+            "경북", "경남", "대구", "부산", "울산", // 경상
+            "전북", "전남", "광주",                // 전라
+            "충북", "충남", "세종", "대전"         // 충청
+        );
+
+        List<CategoryClassDto> dtos;
+
+        if ("기타".equals(keyword)) {
+            // 기타: 주요 지역 이외
+            dtos = switch (classSortType) {
+                case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+                case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+                case RECENT -> yogaClassRepository.findRecentClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+                case FAVORITE -> yogaClassRepository.findMostFavoritedClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+                case EXPENSIVE -> yogaClassRepository.findMostExpensiveClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+                case CHEAP -> yogaClassRepository.findCheapestClassByTypeAndDepth1NotIn(ALL_MAIN_REGIONS, userUuid);
+            };
+        } else {
+            List<String> depth1List = resolveDepth1List(keyword);
+            dtos = switch (classSortType) {
+                case RECOMMEND -> yogaClassRepository.findMostJoinedClassByTypeAndDepth1In(depth1List, userUuid);
+                case REVIEW -> yogaClassRepository.findHighestRatedClassByTypeAndDepth1In(depth1List, userUuid);
+                case RECENT -> yogaClassRepository.findRecentClassByTypeAndDepth1In(depth1List, userUuid);
+                case FAVORITE -> yogaClassRepository.findMostFavoritedClassByTypeAndDepth1In(depth1List, userUuid);
+                case EXPENSIVE -> yogaClassRepository.findMostExpensiveClassByTypeAndDepth1In(depth1List, userUuid);
+                case CHEAP -> yogaClassRepository.findCheapestClassByTypeAndDepth1In(depth1List, userUuid);
+            };
+        }
+
+        if (dtos == null || dtos.isEmpty()) {
+            return dtos;
+        }
+
+        List<String> classIds = dtos.stream().map(CategoryClassDto::getClassId).collect(Collectors.toList());
+        List<Image> images = imageRepository.findByTypeAndTargetIdInOrderByTargetIdAscOrderNoAsc(TargetType.CLASS, classIds);
+
+        Map<String, List<String>> imageMap = new HashMap<>();
+        for (Image img : images) {
+            List<String> list = imageMap.computeIfAbsent(img.getTargetId(), k -> new java.util.ArrayList<>());
+            if (list.size() < 5) {
+                list.add(img.getUrl());
+            }
+        }
+
+        for (CategoryClassDto dto : dtos) {
+            List<String> imgs = imageMap.get(dto.getClassId());
+            dto.setImages((imgs == null || imgs.isEmpty()) ? List.of() : imgs);
+        }
+
+        return dtos;
+    }
+
+    /**
+     * keyword를 실제 depth1 목록으로 변환 - 서울/경기(인천 포함)/강원/제주 → 단일 or 복수 값 - 경상 → [경북, 경남, 대구, 부산, 울산] - 전라 → [전북, 전남, 광주] - 충청 → [충북, 충남, 세종, 대전] - 경기 →
+     * [경기, 인천] - 기타 이외 값 → keyword 그대로 단일 값
+     */
+    private List<String> resolveDepth1List(String keyword) {
+        return switch (keyword) {
+            case "경상" -> List.of("경북", "경남", "대구", "부산", "울산");
+            case "전라" -> List.of("전북", "전남", "광주");
+            case "충청" -> List.of("충북", "충남", "세종", "대전");
+            case "경기" -> List.of("경기", "인천");
+            default -> List.of(keyword);
+        };
+    }
+
     public void addFavoriteClass(String userUuid, String classId) {
         userFavoriteRepository.save(UserFavorite.builder()
                                                 .id(classId)
@@ -264,17 +345,18 @@ public class ClassService {
     @Transactional
     public void createOrUpdateOneDayClass(String userUuid, NewClassDto newClassDto) {
         // discountPrice와 discountRate 중 하나만 값을 가져야 함 (둘 다 값이 있으면 400)
-        boolean hasDiscountPrice = newClassDto.getDiscountPrice() != null && newClassDto.getDiscountPrice() != 0;
-        boolean hasDiscountRate = newClassDto.getDiscountRate() != null && newClassDto.getDiscountRate() != 0;
-        if (hasDiscountPrice && hasDiscountRate) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "할인금액 또는 할인률 중 하나만 입력해야 합니다.");
+        if (newClassDto.getPolicy() != null) {
+            NewClassDto.PolicyDto p = newClassDto.getPolicy();
+            boolean hasDiscountPrice = p.getDiscountPrice() != null && p.getDiscountPrice() != 0;
+            boolean hasDiscountRate = p.getDiscountRate() != null && p.getDiscountRate() != 0;
+            if (hasDiscountPrice && hasDiscountRate) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "할인금액 또는 할인률 중 하나만 입력해야 합니다.");
+            }
         }
 
         if (newClassDto.getClassId() != null) {
-            // 수정 로직
             updateOneDayClass(userUuid, newClassDto);
         } else {
-            // 생성 로직
             if (newClassDto.getCenterId() == null || newClassDto.getCenterId().isBlank()) {
                 throw new BusinessException(ErrorCode.INVALID_REQUEST, "요가원 ID(centerId)는 필수입니다.");
             }
@@ -287,15 +369,12 @@ public class ClassService {
      */
     private void createOneDayClass(String userUuid, NewClassDto newClassDto) {
         // 1. YogaClass 생성
-
         YogaClass yogaClass = YogaClass.builder()
                                        .name(newClassDto.getName())
                                        .centerId(newClassDto.getCenterId())
-                                       .type("O") // 하루수련
+                                       .type("O")
                                        .description(newClassDto.getDescription())
                                        .price(newClassDto.getPrice())
-                                       .discountPrice(newClassDto.getDiscountPrice())
-                                       .discountRate(newClassDto.getDiscountRate())
                                        .masterId(userUuid)
                                        .mainDisplay("N")
                                        .createdAt(new Date())
@@ -303,13 +382,14 @@ public class ClassService {
                                        .features(new ArrayList<>())
                                        .build();
 
-        // 2. 첫 번째 썸네일 이미지 설정 (있는 경우)
         if (newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()) {
             yogaClass.setThumbnail(newClassDto.getImages().get(0));
         }
-
+        log.info("Created YogaClass: {}", yogaClass.getClassId());
         YogaClass savedClass = yogaClassRepository.save(yogaClass);
-        log.info("Created YogaClass: {}", savedClass.getClassId());
+
+        // 2. 정책 저장 (할인/예약안내/환불)
+        saveClassPolicy(savedClass, newClassDto.getPolicy());
 
         // 3. 클래스 카테고리 저장
         if (newClassDto.getCategoryIds() != null && !newClassDto.getCategoryIds().isEmpty()) {
@@ -348,13 +428,11 @@ public class ClassService {
         // 3. 클래스 정보 업데이트
         YogaClass updatedClass = YogaClass.builder()
                                           .classId(existingClass.getClassId())
-                                          .centerId(existingClass.getCenterId()) // 기존 CENTER_ID 유지 (하위 호환성)
+                                          .centerId(existingClass.getCenterId())
                                           .name(newClassDto.getName())
                                           .type(existingClass.getType())
                                           .description(newClassDto.getDescription())
                                           .price(newClassDto.getPrice())
-                                          .discountPrice(newClassDto.getDiscountPrice())
-                                          .discountRate(newClassDto.getDiscountRate())
                                           .masterId(existingClass.getMasterId())
                                           .mainDisplay(existingClass.getMainDisplay())
                                           .thumbnail(newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()
@@ -365,29 +443,62 @@ public class ClassService {
                                           .features(new ArrayList<>())
                                           .build();
 
+        log.info("Updated YogaClass: {}", updatedClass.getClassId());
         YogaClass savedClass = yogaClassRepository.save(updatedClass);
-        log.info("Updated YogaClass: {}", savedClass.getClassId());
 
-        // 4. 클래스 카테고리 업데이트 (기존 카테고리 삭제 후 새로 저장)
+        // 4. 정책 저장 (기존 policy는 orphanRemoval로 자동 삭제 후 재생성)
+        saveClassPolicy(savedClass, newClassDto.getPolicy());
+
+        // 5. 클래스 카테고리 업데이트
         if (newClassDto.getCategoryIds() != null && !newClassDto.getCategoryIds().isEmpty()) {
             saveClassCategories(savedClass.getClassId(), newClassDto.getCategoryIds());
         }
 
-        // 5. 기존 이미지 삭제 후 새 이미지 저장
+        // 6. 기존 이미지 삭제 후 새 이미지 저장
         imageRepository.deleteByTypeAndTargetId(TargetType.CLASS, savedClass.getClassId());
         if (newClassDto.getImages() != null && !newClassDto.getImages().isEmpty()) {
             saveClassImages(savedClass.getClassId(), newClassDto.getImages());
         }
 
-        // 6. 특징 업데이트 (기존 삭제는 orphanRemoval로 자동 처리)
+        // 7. 특징 업데이트
         if (newClassDto.getFeatureIds() != null && !newClassDto.getFeatureIds().isEmpty()) {
             saveClassFeatures(savedClass, newClassDto.getFeatureIds());
         }
 
-        // 7. 스케줄 업데이트 (기존 것은 유지, 새로운 것만 추가)
+        // 8. 스케줄 업데이트
         if (newClassDto.getSchedules() != null && !newClassDto.getSchedules().isEmpty()) {
             saveClassSchedules(savedClass.getClassId(), newClassDto.getSchedules());
         }
+    }
+
+    /**
+     * 클래스 정책 저장 (할인 / 예약 안내사항 / 환불 규칙) policy가 null이면 아무 것도 하지 않음
+     */
+    private void saveClassPolicy(YogaClass savedClass, NewClassDto.PolicyDto policyDto) {
+        if (policyDto == null) {
+            return;
+        }
+
+        ClassPolicy policy = ClassPolicy.builder()
+                                        .classId(savedClass.getClassId())
+                                        .yogaClass(savedClass)
+                                        .discountPrice(policyDto.getDiscountPrice())
+                                        .discountRate(policyDto.getDiscountRate())
+                                        .reservationNote(policyDto.getReservationNote())
+                                        .build();
+
+        if (policyDto.getRefundPolicies() != null) {
+            List<ClassRefund> refundList = policyDto.getRefundPolicies().stream()
+                                                    .map(r -> ClassRefund.builder()
+                                                                         .classPolicy(policy)
+                                                                         .hoursBefore(r.getHoursBeforeClass())
+                                                                         .refundRate(r.getRefundRate())
+                                                                         .build())
+                                                    .collect(Collectors.toList());
+            policy.setRefundPolicies(refundList);
+        }
+
+        classPolicyRepository.save(policy);
     }
 
     /**
@@ -426,7 +537,6 @@ public class ClassService {
                 log.warn("Invalid feature ID format: {}", featureIdStr);
             }
         }
-        log.info("Saved {} features for class {}", featureIds.size(), yogaClass.getClassId());
     }
 
     /**
@@ -442,13 +552,15 @@ public class ClassService {
 
             // 각 날짜에 대해 스케줄 생성
             if (scheduleDto.getDates() != null) {
+                LocalTime startTime = scheduleDto.getStartTime() != null ? LocalTime.parse(scheduleDto.getStartTime()) : null;
+                LocalTime endTime = scheduleDto.getEndTime() != null ? LocalTime.parse(scheduleDto.getEndTime()) : null;
                 for (Date date : scheduleDto.getDates()) {
                     YogaClassSchedule schedule = YogaClassSchedule.builder()
                                                                   .classId(classId)
                                                                   .specificDate(date)
                                                                   .dayOfWeek(0) // 하루수련은 요일 무관
-                                                                  .startTime(scheduleDto.getStartTime())
-                                                                  .endTime(scheduleDto.getEndTime())
+                                                                  .startTime(startTime)
+                                                                  .endTime(endTime)
                                                                   .minCapacity(scheduleDto.getMinCapacity())
                                                                   .maxCapacity(scheduleDto.getMaxCapacity())
                                                                   .content(scheduleDto.getName())
@@ -458,7 +570,6 @@ public class ClassService {
             }
 
         }
-        log.info("Saved schedules for class {}", classId);
     }
 
     /**
@@ -474,21 +585,24 @@ public class ClassService {
             ? scheduleDto.getDates().get(0)
             : existingSchedule.getSpecificDate();
 
+        LocalTime startTime = scheduleDto.getStartTime() != null
+            ? LocalTime.parse(scheduleDto.getStartTime()) : existingSchedule.getStartTime();
+        LocalTime endTime = scheduleDto.getEndTime() != null
+            ? LocalTime.parse(scheduleDto.getEndTime()) : existingSchedule.getEndTime();
+
         YogaClassSchedule updatedSchedule = YogaClassSchedule.builder()
                                                              .scheduleId(existingSchedule.getScheduleId())
                                                              .classId(existingSchedule.getClassId())
                                                              .specificDate(updateDate)
                                                              .dayOfWeek(existingSchedule.getDayOfWeek())
-                                                             .startTime(scheduleDto.getStartTime())
-                                                             .endTime(scheduleDto.getEndTime())
+                                                             .startTime(startTime)
+                                                             .endTime(endTime)
                                                              .content(scheduleDto.getName())
                                                              .minCapacity(scheduleDto.getMinCapacity())
                                                              .maxCapacity(scheduleDto.getMaxCapacity())
                                                              .build();
 
         yogaClassScheduleRepository.save(updatedSchedule);
-
-        log.info("Updated schedule: {}", updatedSchedule.getScheduleId());
     }
 
     /**
@@ -503,6 +617,5 @@ public class ClassService {
                                                                .build();
             yogaClassCategoryRepository.save(classCategory);
         }
-        log.info("Saved {} categories for class {}", categoryIds.size(), classId);
     }
 }

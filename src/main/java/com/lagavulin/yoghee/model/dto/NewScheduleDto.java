@@ -1,6 +1,5 @@
 package com.lagavulin.yoghee.model.dto;
 
-import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
@@ -26,9 +25,8 @@ public class NewScheduleDto {
     @Schema(description = "스케쥴 날짜 리스트", example = "[\"2026-02-08\", \"2026-02-15\"]", requiredMode = Schema.RequiredMode.REQUIRED)
     private List<Date> dates;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm", timezone = "Asia/Seoul")
-    @Schema(description = "시작 시간", example = "09:30", requiredMode = Schema.RequiredMode.REQUIRED)
-    private LocalTime startTime;
+    @Schema(description = "시작 시간 (HH:mm)", example = "09:30", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String startTime;
 
     @Schema(description = "최소 수강 인원", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long minCapacity;
@@ -36,9 +34,8 @@ public class NewScheduleDto {
     @Schema(description = "최대 수강 인원", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long maxCapacity;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm", timezone = "Asia/Seoul")
-    @Schema(description = "종료 시간", example = "10:30", requiredMode = Schema.RequiredMode.REQUIRED)
-    private LocalTime endTime;
+    @Schema(description = "종료 시간 (HH:mm)", example = "10:30", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String endTime;
 
     @Schema(description = "스케쥴 이름", example = "아침 요가 스트레칭", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;

@@ -87,12 +87,33 @@ public class ClassController {
         @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
         @Parameter(name = "categoryId", description = "카테고리 ID")
         @PathVariable(name = "categoryId") String categoryId,
-        @Parameter(name = "type", description = "R: Regular 정규수련, O: One day 하루수련")
-        @RequestParam(name = "type") String type,
         @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최신순, favorite : 찜순, expensive : 가격높은순, cheap : 가격낮은순")
         @RequestParam(name = "sort", required = false) String sort) {
         String userUuid = principal != null ? principal.getName() : null;
-        return ResponseUtil.success(classService.getCategoryClasses(type, categoryId, ClassSortType.fromCode(sort), userUuid));
+        return ResponseUtil.success(classService.getCategoryClasses("O", categoryId, ClassSortType.fromCode(sort), userUuid));
+    }
+
+    @GetMapping("/address")
+    @Operation(summary = "지역(시/도) 클래스 조회 API", description = "경기, 서울 등 시/도 단위 지역으로 클래스 조회 API",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "지역 클래스 조회 성공",
+                content = @Content(mediaType = "application/json",
+                    array = @ArraySchema(
+                        schema = @Schema(implementation = CategoryClassDto.class)
+                    )
+                )
+            )
+        })
+    public ResponseEntity<?> addressClass(
+        @Parameter(name = "Authorization", description = "[Header] 사용자 JWT 토큰") Principal principal,
+        @Parameter(name = "keyword", description = "지역 키워드: 서울/경기/강원/충청/전라/경상/제주/기타", example = "서울")
+        @RequestParam(name = "keyword") String keyword,
+        @Parameter(name = "sort", description = "recommend : 추천순 (default), review: 리뷰많은순, recent : 최신순, favorite : 찜순, expensive : 가격높은순, cheap : 가격낮은순")
+        @RequestParam(name = "sort", required = false) String sort) {
+        String userUuid = principal != null ? principal.getName() : null;
+        return ResponseUtil.success(classService.getClassesByDepth1(keyword, ClassSortType.fromCode(sort), userUuid));
     }
 
     @PostMapping("/favorite/")
