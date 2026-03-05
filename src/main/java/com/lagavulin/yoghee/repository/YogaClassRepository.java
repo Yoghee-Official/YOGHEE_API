@@ -321,6 +321,400 @@ public interface YogaClassRepository extends JpaRepository<YogaClass, String> {
         """, nativeQuery = true)
     List<Object[]> findUserFavoriteClassesRaw(String userUuid);
 
+    // === 주소(depth1) 검색 관련 쿼리 ===
+
+    /**
+     * depth1 목록 기준 - 가장 참여자가 많은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaClassMember m ON c.classId = m.classId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COUNT(DISTINCT m.userUuid) DESC
+        """)
+    List<CategoryClassDto> findMostJoinedClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 기준 - 리뷰 평점이 높은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COALESCE(AVG(r.rating), 0.0) DESC
+        """)
+    List<CategoryClassDto> findHighestRatedClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 기준 - 최근에 생긴 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.createdAt DESC
+        """)
+    List<CategoryClassDto> findRecentClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 기준 - 찜 많은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COUNT(DISTINCT alluf.userUuid) DESC
+        """)
+    List<CategoryClassDto> findMostFavoritedClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 기준 - 가격 높은 순 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.price DESC
+        """)
+    List<CategoryClassDto> findMostExpensiveClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 기준 - 가격 낮은 순 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 IN :depth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.price ASC
+        """)
+    List<CategoryClassDto> findCheapestClassByTypeAndDepth1In(List<String> depth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 가장 참여자가 많은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaClassMember m ON c.classId = m.classId
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COUNT(DISTINCT m.userUuid) DESC
+        """)
+    List<CategoryClassDto> findMostJoinedClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 리뷰 평점이 높은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COALESCE(AVG(r.rating), 0.0) DESC
+        """)
+    List<CategoryClassDto> findHighestRatedClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 최근에 생긴 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List
+                AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.createdAt DESC
+        """)
+    List<CategoryClassDto> findRecentClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 찜 많은 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY COUNT(DISTINCT alluf.userUuid) DESC
+        """)
+    List<CategoryClassDto> findMostFavoritedClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 가격 높은 순 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.price DESC
+        """)
+    List<CategoryClassDto> findMostExpensiveClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
+    /**
+     * depth1 목록 제외(기타) 기준 - 가격 낮은 순 클래스
+     */
+    @Query(value = """
+            SELECT new com.lagavulin.yoghee.model.dto.CategoryClassDto(
+                c.classId,
+                c.name,
+                CONCAT(center.depth1, ' ', center.depth2, ' ', center.depth3),
+                c.thumbnail,
+                c.masterId,
+                u.nickname,
+                ROUND(COALESCE(AVG(r.rating), 0.0),2),
+                COUNT(DISTINCT r.reviewId),
+                COALESCE(c.price, 0),
+                COUNT(DISTINCT alluf.userUuid),
+                CASE WHEN myuf.userUuid IS NOT NULL THEN true ELSE false END
+            )
+            FROM YogaClass c
+            LEFT JOIN YogaCenter center ON c.centerId = center.centerId
+            INNER JOIN AppUser u ON c.masterId = u.uuid
+            LEFT JOIN YogaClassReview r ON c.classId = r.classId
+            LEFT JOIN UserFavorite myuf ON myuf.id = c.classId
+                    AND myuf.type = 'CLASS'
+                    AND myuf.userUuid = :userUuid
+            LEFT JOIN UserFavorite alluf ON alluf.id = c.classId
+                    AND alluf.type = 'CLASS'
+            WHERE center.depth1 NOT IN :excludeDepth1List AND c.type = "R"
+            GROUP BY c.classId, c.name, c.thumbnail, c.masterId, u.nickname, c.price
+            ORDER BY c.price ASC
+        """)
+    List<CategoryClassDto> findCheapestClassByTypeAndDepth1NotIn(List<String> excludeDepth1List, String userUuid);
+
     // === 지도자 관련 쿼리 ===
 
     /**
